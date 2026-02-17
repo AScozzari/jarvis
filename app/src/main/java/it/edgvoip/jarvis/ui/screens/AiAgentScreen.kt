@@ -481,7 +481,7 @@ private fun SwipeableConversationCard(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 private fun ChatView(
     viewModel: AiAgentViewModel,

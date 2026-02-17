@@ -114,13 +114,17 @@ class AiAgentViewModel @Inject constructor(
                         prefs[stringPreferencesKey("preferred_agent")] ?: ""
                     }.first()
                 } catch (_: Exception) { "" }
-                _selectedAgent.value = if (preferredId.isNotBlank()) {
+                val agent = if (preferredId.isNotBlank()) {
                     filtered.find { it.id == preferredId } ?: filtered.firstOrNull()
                 } else {
                     filtered.firstOrNull()
                 }
-                if (_selectedAgent.value != null) {
+                _selectedAgent.value = agent
+                if (agent != null) {
                     _inChatView.value = true
+                    if (agent.isElevenLabs) {
+                        _isVoiceMode.value = true
+                    }
                 }
             }.onFailure {
                 _errorMessage.value = it.message ?: "Errore nel caricamento degli agenti"
@@ -129,9 +133,28 @@ class AiAgentViewModel @Inject constructor(
         }
     }
 
-    /** Ricarica gli agenti AI (es. dopo errore o lista vuota). */
     fun refreshAgents() {
         loadAgents()
+    }
+
+    fun checkPreferredAgentChanged() {
+        viewModelScope.launch {
+            val preferredId = try {
+                context.settingsDataStore.data.map { prefs ->
+                    prefs[stringPreferencesKey("preferred_agent")] ?: ""
+                }.first()
+            } catch (_: Exception) { "" }
+            if (preferredId.isNotBlank() && _selectedAgent.value?.id != preferredId) {
+                val agent = _availableAgents.value.find { it.id == preferredId }
+                if (agent != null) {
+                    _selectedAgent.value = agent
+                    _isVoiceMode.value = agent.isElevenLabs
+                    _currentConversation.value = null
+                    _messages.value = emptyList()
+                    _inChatView.value = true
+                }
+            }
+        }
     }
 
     fun selectConversation(id: String) {
@@ -323,6 +346,7 @@ class AiAgentViewModel @Inject constructor(
     fun selectAgent(agent: ChatbotAgent) {
         _selectedAgent.value = agent
         _showAgentPicker.value = false
+        _isVoiceMode.value = agent.isElevenLabs
         startNewConversation(agent.id)
     }
 

@@ -6,10 +6,16 @@ import com.google.gson.Gson
 import com.google.gson.JsonObject
 import io.elevenlabs.ConversationClient
 import io.elevenlabs.ConversationConfig
+import io.elevenlabs.ConversationMode
 import io.elevenlabs.ConversationSession
+import io.elevenlabs.ConversationStatus
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 enum class AgentMode {
     LISTENING,
@@ -59,6 +65,7 @@ class ElevenLabsWebRtcManager {
     val isMuted: StateFlow<Boolean> = _isMuted.asStateFlow()
 
     private var session: ConversationSession? = null
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     fun startConversation(context: Context, agentId: String) {
         if (session != null) {
@@ -92,31 +99,37 @@ class ElevenLabsWebRtcManager {
                     Log.w(TAG, "Failed to parse message: ${e.message}")
                 }
             },
-            onModeChange = { modeStr ->
-                Log.d(TAG, "Mode changed: $modeStr")
-                when (modeStr) {
-                    "speaking" -> {
+            onModeChange = { mode ->
+                Log.d(TAG, "Mode changed: $mode")
+                when (mode) {
+                    ConversationMode.SPEAKING -> {
                         _mode.value = AgentMode.SPEAKING
                         _isSpeaking.value = true
                         _isListening.value = false
                     }
-                    "listening" -> {
+                    ConversationMode.LISTENING -> {
                         _mode.value = AgentMode.LISTENING
                         _isSpeaking.value = false
                         _isListening.value = true
                     }
+                    else -> {
+                        Log.d(TAG, "Unknown mode: $mode")
+                    }
                 }
             },
-            onStatusChange = { statusStr ->
-                Log.d(TAG, "Status changed: $statusStr")
-                when (statusStr) {
-                    "connected" -> _status.value = AgentStatus.CONNECTED
-                    "connecting" -> _status.value = AgentStatus.CONNECTING
-                    "disconnected" -> {
+            onStatusChange = { status ->
+                Log.d(TAG, "Status changed: $status")
+                when (status) {
+                    ConversationStatus.CONNECTED -> _status.value = AgentStatus.CONNECTED
+                    ConversationStatus.CONNECTING -> _status.value = AgentStatus.CONNECTING
+                    ConversationStatus.DISCONNECTED -> {
                         _status.value = AgentStatus.DISCONNECTED
                         _isConnected.value = false
                         _isListening.value = false
                         _isSpeaking.value = false
+                    }
+                    else -> {
+                        Log.d(TAG, "Unhandled status: $status")
                     }
                 }
             },
@@ -125,14 +138,16 @@ class ElevenLabsWebRtcManager {
             },
         )
 
-        try {
-            session = ConversationClient.startSession(config, context)
-            Log.i(TAG, "Session started for agentId=$agentId")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to start session: ${e.message}", e)
-            _status.value = AgentStatus.DISCONNECTED
-            _isConnected.value = false
-            session = null
+        scope.launch {
+            try {
+                session = ConversationClient.startSession(config, context)
+                Log.i(TAG, "Session started for agentId=$agentId")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to start session: ${e.message}", e)
+                _status.value = AgentStatus.DISCONNECTED
+                _isConnected.value = false
+                session = null
+            }
         }
     }
 
@@ -153,21 +168,25 @@ class ElevenLabsWebRtcManager {
 
     fun toggleMute() {
         val s = session ?: return
-        try {
-            s.toggleMute()
-            _isMuted.value = !_isMuted.value
-            Log.i(TAG, "Mute toggled: ${_isMuted.value}")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to toggle mute: ${e.message}", e)
+        scope.launch {
+            try {
+                s.toggleMute()
+                _isMuted.value = !_isMuted.value
+                Log.i(TAG, "Mute toggled: ${_isMuted.value}")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to toggle mute: ${e.message}", e)
+            }
         }
     }
 
     fun disconnect() {
         Log.i(TAG, "Disconnecting session")
-        try {
-            session?.endSession()
-        } catch (e: Exception) {
-            Log.w(TAG, "Error ending session: ${e.message}")
+        scope.launch {
+            try {
+                session?.endSession()
+            } catch (e: Exception) {
+                Log.w(TAG, "Error ending session: ${e.message}")
+            }
         }
         session = null
         _status.value = AgentStatus.DISCONNECTED

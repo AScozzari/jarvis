@@ -58,7 +58,7 @@ class SipService : Service() {
     }
 
     @Inject
-    lateinit var sipManager: SipManager
+    lateinit var sipManager: WebRtcPhoneManager
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var wakeLock: PowerManager.WakeLock? = null
@@ -332,7 +332,7 @@ class SipService : Service() {
                 PowerManager.PARTIAL_WAKE_LOCK,
                 WAKE_LOCK_TAG
             ).apply {
-                acquire()
+                acquire(10 * 60 * 1000L)
             }
             Log.i(TAG, "Wake lock acquired")
         }

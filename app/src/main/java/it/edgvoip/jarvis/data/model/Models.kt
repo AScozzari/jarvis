@@ -54,17 +54,18 @@ data class SipConfig(
     @SerializedName("extension") val extension: String? = null,
     @SerializedName("password") val password: String? = null,
     @SerializedName("realm") val realm: String? = null,
-    @SerializedName("transport") val transport: String? = "UDP",
+    @SerializedName("transport") val transport: String? = "WSS",
     @SerializedName("codecs") val codecs: List<String>? = null,
     @SerializedName(value = "caller_id_number", alternate = ["callerIdNumber"]) val callerIdNumber: String? = null,
     @SerializedName(value = "callerIdName", alternate = ["caller_id_name"]) val callerIdName: String? = null,
     @SerializedName(value = "display_name", alternate = ["displayName"]) val displayName: String? = null,
-    @SerializedName(value = "stunServer", alternate = ["stun_server"]) val stunServer: String? = null
+    @SerializedName(value = "stunServer", alternate = ["stun_server"]) val stunServer: String? = null,
+    @SerializedName(value = "wsUrl", alternate = ["ws_url"]) val wsUrl: String? = null
 ) {
     val effectivePort: Int get() = port ?: 5060
     val effectiveRealm: String get() = realm?.takeIf { it.isNotBlank() } ?: (server ?: "")
     val sipUsername: String get() = extension?.takeIf { it.isNotBlank() } ?: username.orEmpty()
-    /** True se la config ha i campi minimi per registrarsi (server e username/extension). */
+    val effectiveWsUrl: String get() = wsUrl?.takeIf { it.isNotBlank() } ?: "wss://ws.edgvoip.it:8443/ws"
     fun isValid(): Boolean = !server.isNullOrBlank() && (!username.isNullOrBlank() || !extension.isNullOrBlank())
 }
 

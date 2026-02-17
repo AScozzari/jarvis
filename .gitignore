@@ -6,8 +6,12 @@
 build/
 **/build/
 # Distribuzione Gradle (scaricata da wrapper) - non committare
-gradle/wrapper/gradle-8.7-all/
+gradle/wrapper/gradle-*/
 gradle/wrapper/*.zip
+gradle/wrapper/src/
+gradle/wrapper/docs/
+gradle/wrapper/lib/
+gradle/wrapper/bin/
 
 # Android Studio / IntelliJ
 .idea/
@@ -42,3 +46,8 @@ captures/
 proguard/
 obj/
 .externalNativeBuild/
+
+# Signing keys
+*.jks
+*.keystore
+key.properties

@@ -8,7 +8,7 @@ import it.edgvoip.jarvis.data.db.ContactEntity
 import it.edgvoip.jarvis.data.repository.PhoneRepository
 import it.edgvoip.jarvis.sip.CallState
 import it.edgvoip.jarvis.sip.RegistrationState
-import it.edgvoip.jarvis.sip.SipManager
+import it.edgvoip.jarvis.sip.WebRtcPhoneManager
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -28,7 +28,7 @@ import javax.inject.Inject
 @HiltViewModel
 class PhoneViewModel @Inject constructor(
     private val phoneRepository: PhoneRepository,
-    private val sipManager: SipManager
+    private val sipManager: WebRtcPhoneManager
 ) : ViewModel() {
 
     private val _dialNumber = MutableStateFlow("")

@@ -11,22 +11,6 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven {
-            name = "linphone"
-            url = uri("https://download.linphone.org/releases/maven_repository")
-            content {
-                includeGroup("org.linphone")
-                includeGroup("org.linphone.no-video")
-            }
-        }
-        maven {
-            name = "linphone-snapshots"
-            url = uri("https://download.linphone.org/maven_repository")
-            content {
-                includeGroup("org.linphone")
-                includeGroup("org.linphone.no-video")
-            }
-        }
     }
 }
 

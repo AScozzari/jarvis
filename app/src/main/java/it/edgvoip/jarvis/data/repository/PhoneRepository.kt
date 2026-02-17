@@ -8,7 +8,7 @@ import it.edgvoip.jarvis.data.db.CallLogEntity
 import it.edgvoip.jarvis.data.db.ContactDao
 import it.edgvoip.jarvis.data.db.ContactEntity
 import it.edgvoip.jarvis.data.model.SipConfig
-import it.edgvoip.jarvis.sip.SipManager
+import it.edgvoip.jarvis.sip.WebRtcPhoneManager
 import kotlinx.coroutines.flow.Flow
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -19,7 +19,7 @@ import javax.inject.Singleton
 @Singleton
 class PhoneRepository @Inject constructor(
     private val api: JarvisApi,
-    private val sipManager: SipManager,
+    private val sipManager: WebRtcPhoneManager,
     private val callLogDao: CallLogDao,
     private val contactDao: ContactDao,
     private val tokenManager: TokenManager

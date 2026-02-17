@@ -54,7 +54,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import it.edgvoip.jarvis.sip.CallDirection
 import it.edgvoip.jarvis.sip.CallState
-import it.edgvoip.jarvis.sip.SipManager
+import it.edgvoip.jarvis.sip.WebRtcPhoneManager
 import it.edgvoip.jarvis.ui.theme.CallGreen
 import it.edgvoip.jarvis.ui.theme.CallRed
 import it.edgvoip.jarvis.ui.theme.DarkBackground
@@ -471,7 +471,7 @@ private fun InCallActionButton(
 
 @Composable
 private fun DtmfOverlay(
-    sipManager: SipManager,
+    sipManager: WebRtcPhoneManager,
     onClose: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current

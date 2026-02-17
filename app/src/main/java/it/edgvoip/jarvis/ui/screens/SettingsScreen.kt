@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.SmartToy
@@ -75,6 +76,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val biometricEnabled by viewModel.biometricEnabled.collectAsState()
+    val pushNotificationsEnabled by viewModel.pushNotificationsEnabled.collectAsState()
     val preferredAgent by viewModel.preferredAgent.collectAsState()
     val sipCodec by viewModel.sipCodec.collectAsState()
     val echoCancellation by viewModel.echoCancellation.collectAsState()
@@ -157,6 +159,21 @@ fun SettingsScreen(
                     icon = Icons.Default.Fingerprint,
                     checked = biometricEnabled,
                     onCheckedChange = { viewModel.setBiometricEnabled(it) }
+                )
+            }
+
+            item { SettingsDivider() }
+
+            item {
+                SettingsSection(title = "Notifiche", icon = Icons.Default.Notifications)
+            }
+            item {
+                SettingSwitchItem(
+                    title = "Notifiche push chiamate",
+                    subtitle = "Ricevi notifiche per chiamate in arrivo quando l'app è in background",
+                    icon = Icons.Default.Notifications,
+                    checked = pushNotificationsEnabled,
+                    onCheckedChange = { viewModel.setPushNotificationsEnabled(it) }
                 )
             }
 

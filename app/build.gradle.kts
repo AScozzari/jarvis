@@ -119,7 +119,9 @@ dependencies {
 
     implementation("androidx.webkit:webkit:1.10.0")
 
-    implementation("org.linphone.no-video:linphone-sdk-android:5.4.+")
+    implementation("io.elevenlabs:elevenlabs-android:0.7.2")
+
+    implementation("io.getstream:stream-webrtc-android:1.3.10")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

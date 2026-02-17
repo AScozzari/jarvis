@@ -1,8 +1,8 @@
 package it.edgvoip.jarvis.ui.screens
 
-import android.annotation.SuppressLint
-import android.webkit.WebView
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SmartToy
@@ -90,7 +91,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import it.edgvoip.jarvis.ai.ElevenLabsWebRtcManager
 import it.edgvoip.jarvis.data.db.ConversationEntity
@@ -655,7 +655,8 @@ private fun ChatView(
                 onSend = { viewModel.sendMessage() },
                 onMicTap = { viewModel.toggleVoiceMode() },
                 isSending = isSending,
-                showMic = selectedAgent?.supportsVoice == true
+                showVoiceButton = selectedAgent?.supportsVoice == true,
+                showSttButton = selectedAgent?.isChatbot == true
             )
         }
     }
@@ -778,8 +779,27 @@ private fun ChatInputBar(
     onSend: () -> Unit,
     onMicTap: () -> Unit,
     isSending: Boolean,
-    showMic: Boolean = true
+    showVoiceButton: Boolean = false,
+    showSttButton: Boolean = false
 ) {
+    val context = LocalContext.current
+    var isRecording by remember { mutableStateOf(false) }
+
+    val speechLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        isRecording = false
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val spokenText = result.data
+                ?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)
+                ?.firstOrNull()
+            if (!spokenText.isNullOrBlank()) {
+                val combined = if (message.isBlank()) spokenText else "$message $spokenText"
+                onMessageChange(combined)
+            }
+        }
+    }
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface,
@@ -793,15 +813,40 @@ private fun ChatInputBar(
             verticalAlignment = Alignment.Bottom,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            if (showMic) {
+            if (showVoiceButton) {
                 IconButton(
                     onClick = onMicTap,
                     modifier = Modifier.size(44.dp)
                 ) {
                     Icon(
                         Icons.Default.Mic,
-                        contentDescription = "Voce",
+                        contentDescription = "Modalità voce",
                         tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            if (showSttButton) {
+                IconButton(
+                    onClick = {
+                        isRecording = true
+                        val intent = android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                            putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                            putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, "it-IT")
+                            putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, "Parla ora...")
+                        }
+                        try {
+                            speechLauncher.launch(intent)
+                        } catch (_: Exception) {
+                            isRecording = false
+                        }
+                    },
+                    modifier = Modifier.size(44.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Mic,
+                        contentDescription = "Dettatura vocale",
+                        tint = if (isRecording) Color(0xFFD32F2F) else MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -856,25 +901,39 @@ private fun ChatInputBar(
     }
 }
 
-@SuppressLint("SetJavaScriptEnabled")
 @Composable
 private fun VoiceModeOverlay(viewModel: AiAgentViewModel) {
     val selectedAgent by viewModel.selectedAgent.collectAsState()
-    val tenantSlug by viewModel.tenantSlug.collectAsState()
     val context = LocalContext.current
     val manager = remember { ElevenLabsWebRtcManager() }
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+
+    val elevenLabsAgentId = selectedAgent?.elevenLabsAgentId
+    val isConnected by manager.isConnected.collectAsState()
+    val isSpeaking by manager.isSpeaking.collectAsState()
+    val isListening by manager.isListening.collectAsState()
+    val vadScore by manager.vadScore.collectAsState()
+    val lastAgentMessage by manager.lastAgentMessage.collectAsState()
+    val agentMuted by manager.isMuted.collectAsState()
+
+    var showTextInput by remember { mutableStateOf(false) }
+    var textInput by remember { mutableStateOf("") }
+
     val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 0.85f,
-        targetValue = 1.15f,
+        initialValue = 0.9f,
+        targetValue = 1.1f + (if (isSpeaking) 0.15f else vadScore * 0.2f),
         animationSpec = infiniteRepeatable(
-            animation = tween(1200),
+            animation = tween(if (isSpeaking) 800 else 1200),
             repeatMode = RepeatMode.Reverse
         ),
         label = "pulse_scale"
     )
 
-    val elevenLabsAgentId = selectedAgent?.elevenLabsAgentId
+    LaunchedEffect(elevenLabsAgentId) {
+        if (elevenLabsAgentId != null) {
+            manager.startConversation(context, elevenLabsAgentId)
+        }
+    }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -885,38 +944,66 @@ private fun VoiceModeOverlay(viewModel: AiAgentViewModel) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.85f)),
+            .background(Color.Black.copy(alpha = 0.9f)),
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+            modifier = Modifier.padding(horizontal = 32.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(160.dp)
-                    .scale(pulseScale)
+                    .size(180.dp)
+                    .scale(if (isConnected) pulseScale else 1f)
                     .background(
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                        when {
+                            isSpeaking -> Color(0xFF6C63FF).copy(alpha = 0.25f)
+                            isConnected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                            else -> Color.Gray.copy(alpha = 0.15f)
+                        },
                         CircleShape
                     ),
                 contentAlignment = Alignment.Center
             ) {
                 Box(
                     modifier = Modifier
-                        .size(120.dp)
+                        .size(130.dp)
                         .background(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                            when {
+                                isSpeaking -> Color(0xFF6C63FF).copy(alpha = 0.45f)
+                                isConnected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                                else -> Color.Gray.copy(alpha = 0.25f)
+                            },
                             CircleShape
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        Icons.Default.Mic,
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                        tint = Color.White
-                    )
+                    when {
+                        elevenLabsAgentId != null && !isConnected -> {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(40.dp),
+                                strokeWidth = 3.dp,
+                                color = Color.White.copy(alpha = 0.7f)
+                            )
+                        }
+                        isSpeaking -> {
+                            Icon(
+                                Icons.Default.SmartToy,
+                                contentDescription = null,
+                                modifier = Modifier.size(52.dp),
+                                tint = Color.White
+                            )
+                        }
+                        else -> {
+                            Icon(
+                                Icons.Default.Mic,
+                                contentDescription = null,
+                                modifier = Modifier.size(52.dp),
+                                tint = if (isConnected) Color.White else Color.White.copy(alpha = 0.5f)
+                            )
+                        }
+                    }
                 }
             }
 
@@ -928,49 +1015,144 @@ private fun VoiceModeOverlay(viewModel: AiAgentViewModel) {
             )
 
             Text(
-                text = if (elevenLabsAgentId != null) "In ascolto..." else "Agente non supporta voce",
+                text = when {
+                    elevenLabsAgentId == null -> "Agente non supporta voce"
+                    !isConnected -> "Connessione in corso..."
+                    isSpeaking -> "Sta parlando..."
+                    isListening -> "In ascolto..."
+                    else -> "Connesso"
+                },
                 style = MaterialTheme.typography.bodyLarge,
                 color = Color.White.copy(alpha = 0.7f)
             )
 
-            if (elevenLabsAgentId != null) {
-                AndroidView(
-                    factory = {
-                        manager.createWebView(context, elevenLabsAgentId).apply {
-                            val url = manager.getWidgetUrl(elevenLabsAgentId, tenantSlug)
-                            loadUrl(url)
-                        }
-                    },
-                    modifier = Modifier.size(1.dp)
+            if (lastAgentMessage != null && isConnected) {
+                Text(
+                    text = lastAgentMessage ?: "",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.5f),
+                    textAlign = TextAlign.Center,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(horizontal = 16.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            Surface(
-                onClick = {
-                    manager.disconnect()
-                    viewModel.toggleVoiceMode()
-                },
-                shape = RoundedCornerShape(24.dp),
-                color = Color(0xFFD32F2F)
-            ) {
+            if (showTextInput && isConnected) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 32.dp, vertical = 14.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        Icons.Default.Close,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
+                    TextField(
+                        value = textInput,
+                        onValueChange = { textInput = it },
+                        modifier = Modifier.weight(1f),
+                        placeholder = { Text("Scrivi all'agente...") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(24.dp),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.White.copy(alpha = 0.15f),
+                            unfocusedContainerColor = Color.White.copy(alpha = 0.1f),
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedPlaceholderColor = Color.White.copy(alpha = 0.4f),
+                            unfocusedPlaceholderColor = Color.White.copy(alpha = 0.4f)
+                        )
                     )
-                    Text(
-                        text = "Chiudi",
-                        color = Color.White,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    IconButton(
+                        onClick = {
+                            if (textInput.isNotBlank()) {
+                                manager.sendTextMessage(textInput.trim())
+                                textInput = ""
+                            }
+                        },
+                        enabled = textInput.isNotBlank(),
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(
+                                if (textInput.isNotBlank()) MaterialTheme.colorScheme.primary
+                                else Color.White.copy(alpha = 0.1f),
+                                CircleShape
+                            )
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Send,
+                            contentDescription = "Invia",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (isConnected) {
+                    Surface(
+                        onClick = { manager.toggleMute() },
+                        shape = CircleShape,
+                        color = if (agentMuted) Color(0xFFD32F2F) else Color.White.copy(alpha = 0.15f)
+                    ) {
+                        Icon(
+                            if (agentMuted) Icons.Default.MicOff else Icons.Default.Mic,
+                            contentDescription = if (agentMuted) "Attiva mic" else "Muta mic",
+                            tint = Color.White,
+                            modifier = Modifier
+                                .padding(14.dp)
+                                .size(24.dp)
+                        )
+                    }
+
+                    Surface(
+                        onClick = { showTextInput = !showTextInput },
+                        shape = CircleShape,
+                        color = if (showTextInput) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.15f)
+                    ) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "Scrivi",
+                            tint = Color.White,
+                            modifier = Modifier
+                                .padding(14.dp)
+                                .size(24.dp)
+                        )
+                    }
+                }
+
+                Surface(
+                    onClick = {
+                        manager.disconnect()
+                        viewModel.toggleVoiceMode()
+                    },
+                    shape = RoundedCornerShape(24.dp),
+                    color = Color(0xFFD32F2F)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 28.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = "Chiudi",
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
         }

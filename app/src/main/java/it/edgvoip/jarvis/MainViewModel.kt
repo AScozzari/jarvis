@@ -6,7 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import it.edgvoip.jarvis.data.repository.AuthRepository
 import it.edgvoip.jarvis.data.repository.NotificationRepository
 import it.edgvoip.jarvis.data.repository.PhoneRepository
-import it.edgvoip.jarvis.sip.SipManager
+import it.edgvoip.jarvis.sip.WebRtcPhoneManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +20,7 @@ class MainViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val phoneRepository: PhoneRepository,
     private val notificationRepository: NotificationRepository,
-    private val sipManager: SipManager
+    private val sipManager: WebRtcPhoneManager
 ) : ViewModel() {
 
     private val _isAuthenticated = MutableStateFlow(authRepository.isLoggedIn())

@@ -1,13 +1,16 @@
 package it.edgvoip.jarvis.data.repository
 
 import android.util.Log
+import com.google.firebase.messaging.FirebaseMessaging
 import it.edgvoip.jarvis.data.api.ApiClient
 import it.edgvoip.jarvis.data.api.JarvisApi
 import it.edgvoip.jarvis.data.api.TokenManager
+import it.edgvoip.jarvis.data.model.DeviceRegisterRequest
 import it.edgvoip.jarvis.data.model.LoginRequest
 import it.edgvoip.jarvis.data.model.LogoutRequest
 import it.edgvoip.jarvis.data.model.RefreshRequest
 import it.edgvoip.jarvis.data.model.User
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -43,6 +46,7 @@ class AuthRepository @Inject constructor(
                     Log.d("AuthRepository", "Login: sipConfig from backend present=${loginData.sipConfig != null}, valid=${loginData.sipConfig?.isValid()}, saved=${sipToSave != null}")
                     tokenManager.saveApiBaseUrl(loginData.apiBaseUrl)
                     ApiClient.invalidate()
+                    registerFcmToken(tenantSlug)
                     Result.success(loginData.user)
                 } else {
                     Result.failure(Exception(body?.error ?: "Errore durante il login"))
@@ -109,8 +113,11 @@ class AuthRepository @Inject constructor(
 
     suspend fun logout() {
         try {
-            val refreshToken = tokenManager.getRefreshToken()
             val slug = tokenManager.getTenantSlug()
+            if (slug != null) {
+                unregisterFcmToken(slug)
+            }
+            val refreshToken = tokenManager.getRefreshToken()
             if (refreshToken != null && slug != null) {
                 val request = LogoutRequest(refreshToken = refreshToken)
                 api.logout(slug, request)
@@ -118,6 +125,42 @@ class AuthRepository @Inject constructor(
         } catch (_: Exception) {
         } finally {
             tokenManager.clearSession()
+        }
+    }
+
+    private suspend fun unregisterFcmToken(tenantSlug: String) {
+        try {
+            val fcmToken = FirebaseMessaging.getInstance().token.await()
+            val deviceName = android.os.Build.MODEL
+            val request = DeviceRegisterRequest(
+                fcmToken = fcmToken,
+                platform = "android",
+                deviceName = deviceName
+            )
+            api.unregisterDevice(tenantSlug, request)
+            Log.i("AuthRepository", "FCM token deregistrato al logout")
+        } catch (e: Exception) {
+            Log.w("AuthRepository", "Errore deregistrazione FCM token: ${e.message}")
+        }
+    }
+
+    private suspend fun registerFcmToken(tenantSlug: String) {
+        try {
+            val fcmToken = FirebaseMessaging.getInstance().token.await()
+            val deviceName = android.os.Build.MODEL
+            val request = DeviceRegisterRequest(
+                fcmToken = fcmToken,
+                platform = "android",
+                deviceName = deviceName
+            )
+            val response = api.registerDevice(tenantSlug, request)
+            if (response.isSuccessful) {
+                Log.i("AuthRepository", "FCM token registrato automaticamente dopo login")
+            } else {
+                Log.w("AuthRepository", "Errore registrazione FCM token: ${response.code()}")
+            }
+        } catch (e: Exception) {
+            Log.w("AuthRepository", "Errore registrazione FCM token post-login: ${e.message}")
         }
     }
 

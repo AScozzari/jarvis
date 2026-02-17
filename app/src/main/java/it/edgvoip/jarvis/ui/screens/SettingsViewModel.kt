@@ -17,7 +17,7 @@ import it.edgvoip.jarvis.data.model.User
 import it.edgvoip.jarvis.data.repository.AiAgentRepository
 import it.edgvoip.jarvis.data.repository.AuthRepository
 import it.edgvoip.jarvis.sip.RegistrationState
-import it.edgvoip.jarvis.sip.SipManager
+import it.edgvoip.jarvis.sip.WebRtcPhoneManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -35,7 +35,7 @@ class SettingsViewModel @Inject constructor(
     private val tokenManager: TokenManager,
     private val authRepository: AuthRepository,
     private val aiAgentRepository: AiAgentRepository,
-    private val sipManager: SipManager
+    private val sipManager: WebRtcPhoneManager
 ) : ViewModel() {
 
     companion object {
@@ -45,6 +45,7 @@ class SettingsViewModel @Inject constructor(
         val KEY_ECHO_CANCELLATION = booleanPreferencesKey("echo_cancellation")
         val KEY_VOLUME_BOOST = booleanPreferencesKey("volume_boost")
         val KEY_THEME = stringPreferencesKey("app_theme")
+        val KEY_PUSH_NOTIFICATIONS = booleanPreferencesKey("push_notifications_enabled")
     }
 
     private val dataStore = context.settingsDataStore
@@ -72,6 +73,10 @@ class SettingsViewModel @Inject constructor(
     val appTheme: StateFlow<String> = dataStore.data
         .map { prefs -> prefs[KEY_THEME] ?: "system" }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "system")
+
+    val pushNotificationsEnabled: StateFlow<Boolean> = dataStore.data
+        .map { prefs -> prefs[KEY_PUSH_NOTIFICATIONS] ?: true }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     val sipRegistrationState: StateFlow<RegistrationState> = sipManager.registrationState
 
@@ -157,6 +162,14 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             dataStore.edit { prefs ->
                 prefs[KEY_THEME] = theme
+            }
+        }
+    }
+
+    fun setPushNotificationsEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            dataStore.edit { prefs ->
+                prefs[KEY_PUSH_NOTIFICATIONS] = enabled
             }
         }
     }

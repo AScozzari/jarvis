@@ -176,3 +176,11 @@ data class Notification(
     @SerializedName("read") val read: Boolean,
     @SerializedName("created_at") val createdAt: String
 )
+
+data class NotificationsPageResponse(
+    @SerializedName("notifications") val notifications: List<Notification> = emptyList(),
+    @SerializedName("total") val total: Int = 0,
+    @SerializedName("page") val page: Int = 1,
+    @SerializedName("limit") val limit: Int = 20,
+    @SerializedName("has_more") val hasMore: Boolean = false
+)

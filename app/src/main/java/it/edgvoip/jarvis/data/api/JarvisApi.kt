@@ -70,7 +70,7 @@ interface JarvisApi {
     @GET("api/{slug}/notifications")
     suspend fun getNotifications(
         @Path("slug") slug: String
-    ): Response<ApiResponse<List<Notification>>>
+    ): Response<ApiResponse<NotificationsPageResponse>>
 
     @PUT("api/{slug}/notifications/{id}/read")
     suspend fun markNotificationRead(

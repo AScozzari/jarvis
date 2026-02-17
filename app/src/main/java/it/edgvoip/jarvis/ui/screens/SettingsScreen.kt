@@ -82,6 +82,8 @@ fun SettingsScreen(
     val volumeBoost by viewModel.volumeBoost.collectAsState()
     val appTheme by viewModel.appTheme.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
+    val availableAgents by viewModel.availableAgents.collectAsState()
+    val agentsLoading by viewModel.agentsLoading.collectAsState()
     val showLogoutDialog by viewModel.showLogoutDialog.collectAsState()
     val isLoggingOut by viewModel.isLoggingOut.collectAsState()
 
@@ -165,11 +167,24 @@ fun SettingsScreen(
                 SettingsSection(title = "AI Agent", icon = Icons.Default.SmartToy)
             }
             item {
+                val agentOptions = buildList {
+                    add("" to "Nessuno")
+                    availableAgents.forEach { agent ->
+                        val typeLabel = when {
+                            agent.isElevenLabs -> " (ElevenLabs)"
+                            else -> ""
+                        }
+                        add(agent.id to "${agent.name}$typeLabel")
+                    }
+                }
+                val selectedLabel = availableAgents.find { it.id == preferredAgent }?.name
+                    ?: if (preferredAgent.isEmpty()) "Nessuno selezionato" else preferredAgent
+
                 SettingDropdownItem(
                     title = "Agente preferito",
-                    subtitle = if (preferredAgent.isEmpty()) "Nessuno selezionato" else preferredAgent,
+                    subtitle = if (agentsLoading) "Caricamento..." else selectedLabel,
                     icon = Icons.Default.SmartToy,
-                    options = listOf("" to "Nessuno", "receptionist" to "AI Receptionist", "sales" to "AI Sales Agent", "support" to "AI Support Agent"),
+                    options = agentOptions,
                     selectedValue = preferredAgent,
                     onValueChange = { viewModel.setPreferredAgent(it) }
                 )

@@ -12,7 +12,9 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import it.edgvoip.jarvis.data.api.TokenManager
+import it.edgvoip.jarvis.data.model.ChatbotAgent
 import it.edgvoip.jarvis.data.model.User
+import it.edgvoip.jarvis.data.repository.AiAgentRepository
 import it.edgvoip.jarvis.data.repository.AuthRepository
 import it.edgvoip.jarvis.sip.RegistrationState
 import it.edgvoip.jarvis.sip.SipManager
@@ -32,6 +34,7 @@ class SettingsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val tokenManager: TokenManager,
     private val authRepository: AuthRepository,
+    private val aiAgentRepository: AiAgentRepository,
     private val sipManager: SipManager
 ) : ViewModel() {
 
@@ -81,8 +84,31 @@ class SettingsViewModel @Inject constructor(
     private val _isLoggingOut = MutableStateFlow(false)
     val isLoggingOut: StateFlow<Boolean> = _isLoggingOut.asStateFlow()
 
+    private val _availableAgents = MutableStateFlow<List<ChatbotAgent>>(emptyList())
+    val availableAgents: StateFlow<List<ChatbotAgent>> = _availableAgents.asStateFlow()
+
+    private val _agentsLoading = MutableStateFlow(false)
+    val agentsLoading: StateFlow<Boolean> = _agentsLoading.asStateFlow()
+
     init {
         _currentUser.value = tokenManager.getUserData()
+        loadAgents()
+    }
+
+    private fun loadAgents() {
+        viewModelScope.launch {
+            _agentsLoading.value = true
+            try {
+                val result = aiAgentRepository.getAvailableAgents()
+                if (result.isSuccess) {
+                    _availableAgents.value = result.getOrDefault(emptyList())
+                        .filter { it.isActive && it.isAssistantOrElevenLabs }
+                }
+            } catch (_: Exception) {
+            } finally {
+                _agentsLoading.value = false
+            }
+        }
     }
 
     fun setBiometricEnabled(enabled: Boolean) {

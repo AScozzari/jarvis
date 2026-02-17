@@ -40,7 +40,7 @@ class NotificationRepository @Inject constructor(
                 if (body != null && body.success && body.data != null) {
                     val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
 
-                    val entities = body.data.map { notification ->
+                    val entities = body.data.notifications.map { notification ->
                         val createdAt = try {
                             dateFormat.parse(notification.createdAt) ?: Date()
                         } catch (e: Exception) {

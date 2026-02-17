@@ -678,7 +678,7 @@ class WebRtcPhoneManager @Inject constructor(
     // ── WebSocket ──
 
     private fun connectWebSocket(config: SipConfig) {
-        val wsUrl = buildWsUrl(config)
+        val wsUrl = config.effectiveWsUrl
         Log.i(TAG, "Connecting WebSocket to: $wsUrl")
 
         okHttpClient = OkHttpClient.Builder()
@@ -720,20 +720,6 @@ class WebRtcPhoneManager @Inject constructor(
                 handleWebSocketDisconnect()
             }
         })
-    }
-
-    private fun buildWsUrl(config: SipConfig): String {
-        val server = config.server ?: "ws.edgvoip.it"
-        val port = config.effectivePort
-        val scheme = if (port == 8443 || port == 443 || config.transport?.uppercase() == "WSS") "wss" else "ws"
-        val cleanServer = server.removePrefix("wss://").removePrefix("ws://").removeSuffix("/ws").removeSuffix("/")
-
-        return if (cleanServer.contains(":") || cleanServer.contains("/")) {
-            if (cleanServer.startsWith("wss://") || cleanServer.startsWith("ws://")) cleanServer
-            else "$scheme://$cleanServer"
-        } else {
-            "$scheme://$cleanServer:$port/ws"
-        }
     }
 
     private fun disconnectWebSocket() {

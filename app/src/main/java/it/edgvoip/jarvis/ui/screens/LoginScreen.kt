@@ -33,10 +33,12 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
+import it.edgvoip.jarvis.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import it.edgvoip.jarvis.ui.theme.*
@@ -198,24 +200,13 @@ fun LoginScreen(
             ) {
                 Spacer(modifier = Modifier.height(48.dp))
 
-                Box(
+                androidx.compose.foundation.Image(
+                    painter = painterResource(id = R.mipmap.ic_launcher),
+                    contentDescription = "Jarvis",
                     modifier = Modifier
-                        .size(80.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(
-                            brush = Brush.linearGradient(
-                                colors = listOf(PrimaryBlue, TertiaryPurple)
-                            )
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "J",
-                        fontSize = 40.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                }
+                        .size(96.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                )
 
                 Spacer(modifier = Modifier.height(16.dp))
 

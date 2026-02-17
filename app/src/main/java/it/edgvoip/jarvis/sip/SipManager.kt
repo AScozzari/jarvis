@@ -25,6 +25,7 @@ import org.linphone.core.CoreListenerStub
 import org.linphone.core.Factory
 import org.linphone.core.LogCollectionState
 import org.linphone.core.MediaEncryption
+import org.linphone.core.ProxyConfig
 import org.linphone.core.RegistrationState as LinphoneRegistrationState
 import org.linphone.core.TransportType
 import javax.inject.Inject
@@ -103,7 +104,7 @@ class SipManager @Inject constructor(
     private val coreListener = object : CoreListenerStub() {
         override fun onRegistrationStateChanged(
             core: Core,
-            account: Account,
+            proxyConfig: ProxyConfig,
             state: LinphoneRegistrationState?,
             message: String
         ) {
@@ -298,7 +299,7 @@ class SipManager @Inject constructor(
             accountParams.serverAddress = serverAddress
 
             accountParams.isRegisterEnabled = true
-            accountParams.registerExpires = 300
+            accountParams.setExpires(300)
 
             if (account != null) {
                 c.removeAccount(account!!)

@@ -215,7 +215,7 @@ fun InCallScreen(
                                 .size(72.dp)
                                 .clip(CircleShape)
                                 .background(CallRed)
-                                .clickable(interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null) {
+                                .clickable {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             sipManager.hangupCall()
                         },
@@ -243,7 +243,7 @@ fun InCallScreen(
                                 .size(72.dp)
                                 .clip(CircleShape)
                                 .background(CallGreen)
-                                .clickable(interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null) {
+                                .clickable {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             sipManager.answerCall()
                         },
@@ -352,7 +352,7 @@ fun InCallScreen(
                             .size(72.dp)
                             .clip(CircleShape)
                             .background(CallRed)
-                            .clickable(interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null) {
+                            .clickable {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     sipManager.hangupCall()
                 },
@@ -446,7 +446,7 @@ private fun InCallActionButton(
                 .background(
                     if (isActive) activeColor.copy(alpha = 0.25f) else DarkSurfaceVariant
                 )
-                .clickable(interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null, onClick = onClick),
+                .clickable(onClick = onClick),
             contentAlignment = Alignment.Center
         ) {
             Icon(

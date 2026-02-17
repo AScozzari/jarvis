@@ -2,7 +2,6 @@ package it.edgvoip.jarvis.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -288,7 +287,7 @@ fun SettingsScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { viewModel.showLogoutConfirmation() }
+                        .clickable { viewModel.showLogoutConfirmation() }
                         .padding(horizontal = 16.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -356,7 +355,7 @@ private fun SettingSwitchItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onCheckedChange(!checked) }
+            .clickable { onCheckedChange(!checked) }
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -419,7 +418,7 @@ private fun SettingDropdownItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { expanded = true }
+                .clickable { expanded = true }
                 .padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -530,7 +529,7 @@ private fun ThemeOption(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
             .background(bgColor)
-            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick)
+            .clickable(onClick = onClick)
             .padding(vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center

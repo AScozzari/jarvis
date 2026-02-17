@@ -312,7 +312,7 @@ private fun DialerTab(
                 .size(72.dp)
                 .clip(CircleShape)
                 .background(CallGreen)
-                .clickable(interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null) {
+                .clickable {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     onCall()
                 },
@@ -341,7 +341,7 @@ private fun DialButton(
             .size(80.dp)
             .clip(CircleShape)
             .background(DarkSurfaceVariant)
-            .clickable(interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null, onClick = onClick),
+            .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -638,7 +638,7 @@ private fun ContactItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null, onClick = onTap)
+            .clickable(onClick = onTap)
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

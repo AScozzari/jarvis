@@ -119,7 +119,7 @@ dependencies {
 
     implementation("androidx.webkit:webkit:1.10.0")
 
-    implementation("org.linphone.no-video:linphone-sdk-android:5.3.77")
+    implementation("org.linphone.no-video:linphone-sdk-android:5.4.+")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

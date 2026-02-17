@@ -29,7 +29,7 @@ import androidx.compose.material.icons.filled.Dialpad
 import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PhoneForwarded
+import androidx.compose.material.icons.automirrored.filled.PhoneForwarded
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -88,6 +88,7 @@ fun InCallScreen(
     val callerNumber = currentCall?.number ?: "Sconosciuto"
     val callerName = currentCall?.name?.ifEmpty { null }
     val duration = currentCall?.duration ?: 0
+    @Suppress("UNUSED_VARIABLE")
     val isIncoming = currentCall?.direction == CallDirection.INCOMING
 
     val statusText = when (callState) {
@@ -324,7 +325,7 @@ fun InCallScreen(
                         )
 
                         InCallActionButton(
-                            icon = Icons.Default.PhoneForwarded,
+                            icon = Icons.AutoMirrored.Filled.PhoneForwarded,
                             label = "Trasferisci",
                             isActive = false,
                             onClick = {
@@ -652,7 +653,7 @@ private fun TransferOverlay(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.PhoneForwarded,
+                    imageVector = Icons.AutoMirrored.Filled.PhoneForwarded,
                     contentDescription = "Trasferisci",
                     tint = Color.White,
                     modifier = Modifier.size(28.dp)

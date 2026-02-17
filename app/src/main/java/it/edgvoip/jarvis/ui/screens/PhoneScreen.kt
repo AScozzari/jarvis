@@ -27,9 +27,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.Backspace
+import androidx.compose.material.icons.automirrored.filled.Backspace
 import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.CallMissed
+import androidx.compose.material.icons.automirrored.filled.CallMissed
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Dialpad
 import androidx.compose.material.icons.filled.Person
@@ -207,6 +207,7 @@ fun PhoneScreen(
     }
 }
 
+@Suppress("UNUSED_PARAMETER")
 @Composable
 private fun DialerTab(
     dialNumber: String,
@@ -262,7 +263,7 @@ private fun DialerTab(
                     onDelete()
                 }) {
                     Icon(
-                        imageVector = Icons.Default.Backspace,
+                        imageVector = Icons.AutoMirrored.Filled.Backspace,
                         contentDescription = "Cancella",
                         tint = Color.White.copy(alpha = 0.7f),
                         modifier = Modifier.size(24.dp)
@@ -424,7 +425,7 @@ private fun CallLogItem(
     val number = if (isInbound) callLog.caller else callLog.callee
 
     val directionIcon = when {
-        isMissed -> Icons.Default.CallMissed
+        isMissed -> Icons.AutoMirrored.Filled.CallMissed
         isInbound -> Icons.Default.ArrowDownward
         else -> Icons.Default.ArrowUpward
     }

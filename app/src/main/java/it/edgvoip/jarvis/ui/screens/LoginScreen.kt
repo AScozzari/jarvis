@@ -214,7 +214,7 @@ fun LoginScreen(
                         .clip(RoundedCornerShape(22.dp))
                 ) {
                     androidx.compose.foundation.Image(
-                        painter = painterResource(id = R.mipmap.ic_launcher),
+                        painter = painterResource(id = R.drawable.jarvis_logo),
                         contentDescription = "Jarvis",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
@@ -244,7 +244,7 @@ fun LoginScreen(
                     Button(
                         onClick = {
                             BiometricHelper.showBiometricPrompt(
-                                activity = activity!!,
+                                activity = activity,
                                 title = "Accedi con impronta",
                                 subtitle = "Usa l'impronta digitale per accedere",
                                 onSuccess = {

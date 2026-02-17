@@ -24,8 +24,8 @@ import org.linphone.core.Core
 import org.linphone.core.CoreListenerStub
 import org.linphone.core.Factory
 import org.linphone.core.LogCollectionState
+import org.linphone.core.LogLevel
 import org.linphone.core.MediaEncryption
-import org.linphone.core.ProxyConfig
 import org.linphone.core.RegistrationState as LinphoneRegistrationState
 import org.linphone.core.TransportType
 import javax.inject.Inject
@@ -104,7 +104,7 @@ class SipManager @Inject constructor(
     private val coreListener = object : CoreListenerStub() {
         override fun onRegistrationStateChanged(
             core: Core,
-            proxyConfig: ProxyConfig,
+            account: Account,
             state: LinphoneRegistrationState?,
             message: String
         ) {
@@ -214,7 +214,7 @@ class SipManager @Inject constructor(
             val factory = Factory.instance()
             factory.setLogCollectionPath(context.filesDir.absolutePath)
             factory.enableLogCollection(LogCollectionState.Enabled)
-            factory.setDebugMode(false, "Linphone")
+            factory.loggingService.setLogLevel(LogLevel.Warning)
 
             if (core == null) {
                 core = factory.createCore(null, null, context)

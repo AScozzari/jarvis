@@ -522,7 +522,6 @@ private fun ThemeOption(
     modifier: Modifier = Modifier
 ) {
     val bgColor = if (isSelected) PrimaryBlue.copy(alpha = 0.2f) else DarkSurfaceVariant
-    val borderColor = if (isSelected) PrimaryBlue else Color.Transparent
     val contentColor = if (isSelected) PrimaryBlue else Color.White.copy(alpha = 0.6f)
 
     Column(

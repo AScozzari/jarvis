@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "998460829207",
+    "project_id": "jarvis-a2c6e",
+    "storage_bucket": "jarvis-a2c6e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:998460829207:android:97e13bc13a21297cda3652",
+        "android_client_info": {
+          "package_name": "it.edgvoip.jarvis"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCISFBySZpWIH5UEjHGcPhdptslFeyOasQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

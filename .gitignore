@@ -1,0 +1,44 @@
+# Chiavi deploy / secreti - non committare
+.deploy-keys/
+
+# Gradle
+.gradle/
+build/
+**/build/
+# Distribuzione Gradle (scaricata da wrapper) - non committare
+gradle/wrapper/gradle-8.7-all/
+gradle/wrapper/*.zip
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+Thumbs.db
+
+# Local config (SDK path)
+local.properties
+
+# Logs
+*.log
+logs/
+
+# JDK estratti / download (se usati solo in locale)
+jdk-download/
+jdk-final/
+
+# Output build
+*.apk
+*.aar
+*.ap_
+*.aab
+*.dex
+build-output.log
+build-output.txt
+
+# Captures, ProGuard, NDK
+captures/
+proguard/
+obj/
+.externalNativeBuild/

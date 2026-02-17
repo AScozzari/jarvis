@@ -77,6 +77,9 @@ class AiAgentViewModel @Inject constructor(
     private val _showAgentPicker = MutableStateFlow(false)
     val showAgentPicker: StateFlow<Boolean> = _showAgentPicker.asStateFlow()
 
+    private val _tenantSlug = MutableStateFlow("")
+    val tenantSlug: StateFlow<String> = _tenantSlug.asStateFlow()
+
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
@@ -84,6 +87,7 @@ class AiAgentViewModel @Inject constructor(
     private var conversationsJob: Job? = null
 
     init {
+        _tenantSlug.value = repository.getTenantSlug() ?: ""
         loadConversations()
         loadAgents()
     }

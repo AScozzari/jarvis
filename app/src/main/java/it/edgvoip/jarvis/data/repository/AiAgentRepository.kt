@@ -168,4 +168,6 @@ class AiAgentRepository @Inject constructor(
         messageDao.deleteMessagesByConversation(id)
         conversationDao.updateLastMessage(id, "", Date())
     }
+
+    fun getTenantSlug(): String? = tokenManager.getTenantSlug()
 }

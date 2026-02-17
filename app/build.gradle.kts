@@ -119,8 +119,7 @@ dependencies {
 
     implementation("androidx.webkit:webkit:1.10.0")
 
-    // PJSIP: riattiva quando pjsua2.aar è presente in pjsua2/
-    // implementation(project(":pjsua2"))
+    implementation("org.linphone.no-video:linphone-sdk-android:5.3.77")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

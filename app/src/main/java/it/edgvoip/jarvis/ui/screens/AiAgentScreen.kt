@@ -3,6 +3,7 @@ package it.edgvoip.jarvis.ui.screens
 import android.annotation.SuppressLint
 import android.webkit.WebView
 import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -653,7 +654,8 @@ private fun ChatView(
                 onMessageChange = { viewModel.updateInput(it) },
                 onSend = { viewModel.sendMessage() },
                 onMicTap = { viewModel.toggleVoiceMode() },
-                isSending = isSending
+                isSending = isSending,
+                showMic = selectedAgent?.supportsVoice == true
             )
         }
     }
@@ -775,7 +777,8 @@ private fun ChatInputBar(
     onMessageChange: (String) -> Unit,
     onSend: () -> Unit,
     onMicTap: () -> Unit,
-    isSending: Boolean
+    isSending: Boolean,
+    showMic: Boolean = true
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -790,15 +793,17 @@ private fun ChatInputBar(
             verticalAlignment = Alignment.Bottom,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            IconButton(
-                onClick = onMicTap,
-                modifier = Modifier.size(44.dp)
-            ) {
-                Icon(
-                    Icons.Default.Mic,
-                    contentDescription = "Voce",
-                    tint = MaterialTheme.colorScheme.primary
-                )
+            if (showMic) {
+                IconButton(
+                    onClick = onMicTap,
+                    modifier = Modifier.size(44.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Mic,
+                        contentDescription = "Voce",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
 
             TextField(
@@ -855,6 +860,7 @@ private fun ChatInputBar(
 @Composable
 private fun VoiceModeOverlay(viewModel: AiAgentViewModel) {
     val selectedAgent by viewModel.selectedAgent.collectAsState()
+    val tenantSlug by viewModel.tenantSlug.collectAsState()
     val context = LocalContext.current
     val manager = remember { ElevenLabsWebRtcManager() }
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
@@ -867,6 +873,14 @@ private fun VoiceModeOverlay(viewModel: AiAgentViewModel) {
         ),
         label = "pulse_scale"
     )
+
+    val elevenLabsAgentId = selectedAgent?.elevenLabsAgentId
+
+    DisposableEffect(Unit) {
+        onDispose {
+            manager.disconnect()
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -914,16 +928,16 @@ private fun VoiceModeOverlay(viewModel: AiAgentViewModel) {
             )
 
             Text(
-                text = "In ascolto...",
+                text = if (elevenLabsAgentId != null) "In ascolto..." else "Agente non supporta voce",
                 style = MaterialTheme.typography.bodyLarge,
                 color = Color.White.copy(alpha = 0.7f)
             )
 
-            selectedAgent?.let { agent ->
+            if (elevenLabsAgentId != null) {
                 AndroidView(
                     factory = {
-                        manager.createWebView(context, agent.id).apply {
-                            val url = manager.getWidgetUrl(agent.id, "")
+                        manager.createWebView(context, elevenLabsAgentId).apply {
+                            val url = manager.getWidgetUrl(elevenLabsAgentId, tenantSlug)
                             loadUrl(url)
                         }
                     },
@@ -934,7 +948,10 @@ private fun VoiceModeOverlay(viewModel: AiAgentViewModel) {
             Spacer(modifier = Modifier.height(32.dp))
 
             Surface(
-                onClick = { viewModel.toggleVoiceMode() },
+                onClick = {
+                    manager.disconnect()
+                    viewModel.toggleVoiceMode()
+                },
                 shape = RoundedCornerShape(24.dp),
                 color = Color(0xFFD32F2F)
             ) {

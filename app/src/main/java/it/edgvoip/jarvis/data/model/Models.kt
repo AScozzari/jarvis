@@ -97,17 +97,22 @@ data class ChatbotAgent(
     @SerializedName("agent_type") val agentType: String? = null,
     @SerializedName("voice_name") val voiceName: String? = null,
     @SerializedName("language") val language: String? = null,
-    @SerializedName("llm_model") val llmModel: String? = null
+    @SerializedName("llm_model") val llmModel: String? = null,
+    @SerializedName("elevenlabs_agent_id") val elevenLabsAgentId: String? = null,
+    @SerializedName("channel_webrtc") val channelWebrtc: Boolean? = null,
+    @SerializedName("channel_sip") val channelSip: Boolean? = null,
+    @SerializedName("first_message") val firstMessage: String? = null
 ) {
     val isElevenLabs: Boolean get() = agentType?.lowercase() in listOf("elevenlabs", "eleven_labs")
     val isChatbot: Boolean get() = agentType == "chatbot" || agentType.isNullOrBlank()
-    /** True se l'agente va mostrato in app: ElevenLabs (e varianti) e assistant/chatbot. Esclude solo "real_voice". */
     val isAssistantOrElevenLabs: Boolean get() = when (agentType?.lowercase()) {
         "elevenlabs", "eleven_labs", "chatbot", "assistant" -> true
         null, "" -> true
         "real_voice" -> false
         else -> true
     }
+    val supportsVoice: Boolean get() = isElevenLabs && channelWebrtc == true && !elevenLabsAgentId.isNullOrBlank()
+    val supportsText: Boolean get() = isChatbot || (isElevenLabs && !elevenLabsAgentId.isNullOrBlank())
 }
 
 data class ChatbotConfigResponse(

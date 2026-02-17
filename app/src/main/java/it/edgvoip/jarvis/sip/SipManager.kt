@@ -16,6 +16,17 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
+import org.linphone.core.Account
+import org.linphone.core.AccountParams
+import org.linphone.core.AudioDevice
+import org.linphone.core.Call
+import org.linphone.core.Core
+import org.linphone.core.CoreListenerStub
+import org.linphone.core.Factory
+import org.linphone.core.LogCollectionState
+import org.linphone.core.MediaEncryption
+import org.linphone.core.RegistrationState as LinphoneRegistrationState
+import org.linphone.core.TransportType
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -57,21 +68,6 @@ class SipManager @Inject constructor(
 ) {
     companion object {
         private const val TAG = "SipManager"
-        private var pjsipAvailable: Boolean = false
-
-        init {
-            try {
-                System.loadLibrary("pjsua2")
-                pjsipAvailable = true
-                Log.i(TAG, "PJSIP native library loaded successfully")
-            } catch (e: UnsatisfiedLinkError) {
-                pjsipAvailable = false
-                Log.w(TAG, "PJSIP native library not available, using stub implementation")
-            } catch (e: Throwable) {
-                pjsipAvailable = false
-                Log.w(TAG, "PJSIP load failed: ${e.message}", e)
-            }
-        }
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -101,35 +97,166 @@ class SipManager @Inject constructor(
     private var durationJob: Job? = null
     private var callIdCounter = 0
 
-    fun initialize(config: SipConfig) {
-        Log.i(TAG, "Initializing SIP stack: ${config.server}:${config.effectivePort}")
-        currentConfig = config
+    private var core: Core? = null
+    private var account: Account? = null
 
-        if (pjsipAvailable) {
-            initializePjsip(config)
-        } else {
-            Log.i(TAG, "PJSIP not available - SIP engine ready for native library integration")
-            isInitialized = true
+    private val coreListener = object : CoreListenerStub() {
+        override fun onRegistrationStateChanged(
+            core: Core,
+            account: Account,
+            state: LinphoneRegistrationState?,
+            message: String
+        ) {
+            Log.i(TAG, "Linphone registration state: $state - $message")
+            when (state) {
+                LinphoneRegistrationState.Ok -> {
+                    _registrationState.value = RegistrationState.REGISTERED
+                    Log.i(TAG, "SIP REGISTERED successfully")
+                }
+                LinphoneRegistrationState.Failed -> {
+                    _registrationState.value = RegistrationState.FAILED
+                    Log.e(TAG, "SIP registration FAILED: $message")
+                }
+                LinphoneRegistrationState.Progress -> {
+                    _registrationState.value = RegistrationState.REGISTERING
+                }
+                LinphoneRegistrationState.Cleared -> {
+                    _registrationState.value = RegistrationState.UNREGISTERED
+                }
+                else -> {}
+            }
+        }
+
+        override fun onCallStateChanged(
+            core: Core,
+            call: Call,
+            state: Call.State?,
+            message: String
+        ) {
+            Log.i(TAG, "Linphone call state: $state - $message")
+            when (state) {
+                Call.State.IncomingReceived, Call.State.IncomingEarlyMedia -> {
+                    val remoteAddress = call.remoteAddress
+                    val number = remoteAddress.username ?: remoteAddress.asStringUriOnly()
+                    val displayName = remoteAddress.displayName ?: ""
+                    handleIncomingCall(
+                        callId = call.callLog.callId ?: "incoming_${System.currentTimeMillis()}",
+                        callerNumber = number,
+                        callerName = displayName
+                    )
+                }
+                Call.State.OutgoingInit, Call.State.OutgoingProgress -> {
+                    _callState.value = CallState.CALLING
+                    _currentCall.value = _currentCall.value?.copy(state = CallState.CALLING)
+                }
+                Call.State.OutgoingRinging -> {
+                    _callState.value = CallState.RINGING
+                    _currentCall.value = _currentCall.value?.copy(state = CallState.RINGING)
+                    Log.i(TAG, "Call ringing")
+                }
+                Call.State.Connected, Call.State.StreamsRunning -> {
+                    _callState.value = CallState.CONNECTED
+                    _currentCall.value = _currentCall.value?.copy(state = CallState.CONNECTED)
+                    callStartTime = System.currentTimeMillis()
+                    startDurationTimer()
+                    Log.i(TAG, "Call connected - audio streaming")
+                }
+                Call.State.Paused, Call.State.PausedByRemote -> {
+                    _callState.value = CallState.HOLDING
+                    _currentCall.value = _currentCall.value?.copy(state = CallState.HOLDING)
+                    _isOnHold.value = true
+                }
+                Call.State.Resuming -> {
+                    _callState.value = CallState.CONNECTED
+                    _currentCall.value = _currentCall.value?.copy(state = CallState.CONNECTED)
+                    _isOnHold.value = false
+                }
+                Call.State.End, Call.State.Released -> {
+                    stopDurationTimer()
+                    _callState.value = CallState.DISCONNECTED
+                    _currentCall.value = _currentCall.value?.copy(state = CallState.DISCONNECTED)
+                    _isMuted.value = false
+                    _isSpeakerOn.value = false
+                    _isOnHold.value = false
+                    Log.i(TAG, "Call ended")
+                    scope.launch {
+                        delay(2000)
+                        if (_callState.value == CallState.DISCONNECTED) {
+                            _callState.value = CallState.IDLE
+                            _currentCall.value = null
+                        }
+                    }
+                }
+                Call.State.Error -> {
+                    stopDurationTimer()
+                    _callState.value = CallState.DISCONNECTED
+                    _currentCall.value = _currentCall.value?.copy(state = CallState.DISCONNECTED)
+                    Log.e(TAG, "Call error: $message")
+                    scope.launch {
+                        delay(2000)
+                        if (_callState.value == CallState.DISCONNECTED) {
+                            _callState.value = CallState.IDLE
+                            _currentCall.value = null
+                        }
+                    }
+                }
+                else -> {}
+            }
         }
     }
 
-    private fun initializePjsip(config: SipConfig) {
-        // TODO: Replace with PJSIP native calls
+    fun initialize(config: SipConfig) {
+        Log.i(TAG, "Initializing Linphone SIP stack: ${config.server}:${config.effectivePort}")
+        currentConfig = config
+
         try {
-            Log.i(TAG, "Configuring PJSIP endpoint")
-            Log.i(TAG, "Server: ${config.server}, Port: ${config.effectivePort}, Transport: ${config.transport}")
-            Log.i(TAG, "Codecs: ${config.codecs?.joinToString(", ") ?: "default"}")
-            isInitialized = true
-            Log.i(TAG, "PJSIP endpoint configured successfully")
+            val factory = Factory.instance()
+            factory.setLogCollectionPath(context.filesDir.absolutePath)
+            factory.enableLogCollection(LogCollectionState.Enabled)
+            factory.setDebugMode(false, "Linphone")
+
+            if (core == null) {
+                core = factory.createCore(null, null, context)
+            }
+
+            core?.let { c ->
+                c.isIpv6Enabled = false
+                c.mediaEncryption = MediaEncryption.None
+
+                val stunServer = config.stunServer
+                if (!stunServer.isNullOrBlank()) {
+                    val natPolicy = c.createNatPolicy()
+                    natPolicy.stunServer = stunServer
+                    natPolicy.isStunEnabled = true
+                    natPolicy.isIceEnabled = true
+                    c.natPolicy = natPolicy
+                    Log.i(TAG, "STUN/ICE configured: $stunServer")
+                }
+
+                val codecs = config.codecs
+                if (!codecs.isNullOrEmpty()) {
+                    c.audioPayloadTypes.forEach { pt ->
+                        pt.enable(codecs.any { codec ->
+                            pt.mimeType.equals(codec, ignoreCase = true)
+                        })
+                    }
+                    Log.i(TAG, "Codecs configured: ${codecs.joinToString(", ")}")
+                }
+
+                c.addListener(coreListener)
+                c.start()
+                isInitialized = true
+                Log.i(TAG, "Linphone Core started successfully")
+            }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize PJSIP: ${e.message}", e)
+            Log.e(TAG, "Failed to initialize Linphone: ${e.message}", e)
             isInitialized = false
         }
     }
 
     fun register() {
-        if (!isInitialized) {
-            Log.w(TAG, "SIP stack not initialized, cannot register")
+        if (!isInitialized || core == null) {
+            Log.w(TAG, "Linphone not initialized, cannot register")
             _registrationState.value = RegistrationState.FAILED
             return
         }
@@ -141,26 +268,49 @@ class SipManager @Inject constructor(
         }
 
         _registrationState.value = RegistrationState.REGISTERING
-        Log.i(TAG, "Registering SIP account: ${config.sipUsername}@${config.effectiveRealm}")
+        val username = config.sipUsername
+        val domain = config.effectiveRealm
+        val password = config.password ?: ""
+        val port = config.effectivePort
+        Log.i(TAG, "Registering SIP account: $username@$domain:$port")
 
-        if (pjsipAvailable) {
-            performPjsipRegistration(config)
-        } else {
-            scope.launch {
-                delay(500)
-                _registrationState.value = RegistrationState.REGISTERED
-                Log.i(TAG, "SIP registration simulated (native library not loaded)")
-            }
-        }
-    }
-
-    private fun performPjsipRegistration(config: SipConfig) {
-        // TODO: Replace with PJSIP native calls
         try {
-            Log.i(TAG, "Creating PJSIP account for ${config.sipUsername}@${config.effectiveRealm}")
-            _registrationState.value = RegistrationState.REGISTERED
+            val c = core!!
+            val factory = Factory.instance()
+
+            val transport = when (config.transport?.uppercase()) {
+                "TCP" -> TransportType.Tcp
+                "TLS" -> TransportType.Tls
+                else -> TransportType.Udp
+            }
+
+            val authInfo = factory.createAuthInfo(
+                username, null, password, null, null, domain, null
+            )
+            c.addAuthInfo(authInfo)
+
+            val accountParams: AccountParams = c.createAccountParams()
+            val sipAddress = factory.createAddress("sip:$username@$domain:$port")
+            accountParams.identityAddress = sipAddress
+
+            val serverAddress = factory.createAddress("sip:$domain:$port")
+            serverAddress?.transport = transport
+            accountParams.serverAddress = serverAddress
+
+            accountParams.isRegisterEnabled = true
+            accountParams.registerExpires = 300
+
+            if (account != null) {
+                c.removeAccount(account!!)
+            }
+            val newAccount = c.createAccount(accountParams)
+            c.addAccount(newAccount)
+            c.defaultAccount = newAccount
+            account = newAccount
+
+            Log.i(TAG, "Linphone account created: sip:$username@$domain:$port (${config.transport})")
         } catch (e: Exception) {
-            Log.e(TAG, "PJSIP registration failed: ${e.message}", e)
+            Log.e(TAG, "Linphone registration failed: ${e.message}", e)
             _registrationState.value = RegistrationState.FAILED
         }
     }
@@ -173,23 +323,21 @@ class SipManager @Inject constructor(
             hangupCall()
         }
 
-        scope.launch {
-            try {
-                if (pjsipAvailable) {
-                    Log.i(TAG, "Destroying PJSIP account")
-                }
-                _registrationState.value = RegistrationState.UNREGISTERED
-                Log.i(TAG, "SIP account unregistered")
-            } catch (e: Exception) {
-                Log.e(TAG, "Error during unregistration: ${e.message}", e)
-                _registrationState.value = RegistrationState.UNREGISTERED
+        try {
+            account?.let { acc ->
+                val params = acc.params.clone()
+                params.isRegisterEnabled = false
+                acc.params = params
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during unregistration: ${e.message}", e)
+            _registrationState.value = RegistrationState.UNREGISTERED
         }
     }
 
     fun makeCall(number: String) {
         if (_registrationState.value != RegistrationState.REGISTERED) {
-            Log.w(TAG, "Cannot make call: not registered")
+            Log.w(TAG, "Cannot make call: not registered (state=${_registrationState.value})")
             return
         }
 
@@ -198,8 +346,11 @@ class SipManager @Inject constructor(
             return
         }
 
+        val config = currentConfig ?: return
+        val domain = config.effectiveRealm
+        val sipUri = "sip:$number@$domain"
         val callId = "call_${++callIdCounter}_${System.currentTimeMillis()}"
-        Log.i(TAG, "Making call to: $number (id: $callId)")
+        Log.i(TAG, "Making call to: $sipUri (id: $callId)")
 
         val callInfo = CallInfo(
             id = callId,
@@ -216,35 +367,24 @@ class SipManager @Inject constructor(
         _isSpeakerOn.value = false
         _isOnHold.value = false
 
-        if (pjsipAvailable) {
-            performPjsipCall(number, callId)
-        } else {
-            scope.launch {
-                delay(1000)
-                _callState.value = CallState.RINGING
-                _currentCall.value = callInfo.copy(state = CallState.RINGING)
-                Log.i(TAG, "Call ringing (simulated)")
-
-                delay(2000)
-                _callState.value = CallState.CONNECTED
-                _currentCall.value = callInfo.copy(state = CallState.CONNECTED)
-                callStartTime = System.currentTimeMillis()
-                startDurationTimer()
-                Log.i(TAG, "Call connected (simulated)")
-            }
-        }
-    }
-
-    private fun performPjsipCall(number: String, callId: String) {
-        // TODO: Replace with PJSIP native calls
         try {
-            val config = currentConfig ?: return
-            val sipUri = "sip:$number@${config.effectiveRealm}"
-            Log.i(TAG, "PJSIP calling: $sipUri")
+            val c = core!!
+            val address = Factory.instance().createAddress(sipUri)
+            if (address != null) {
+                val callParams = c.createCallParams(null)
+                callParams?.isAudioEnabled = true
+                callParams?.isVideoEnabled = false
+                c.inviteAddressWithParams(address, callParams!!)
+                Log.i(TAG, "Linphone call initiated to $sipUri")
+            } else {
+                Log.e(TAG, "Invalid SIP URI: $sipUri")
+                _callState.value = CallState.DISCONNECTED
+                _currentCall.value = callInfo.copy(state = CallState.DISCONNECTED)
+            }
         } catch (e: Exception) {
-            Log.e(TAG, "PJSIP call failed: ${e.message}", e)
+            Log.e(TAG, "Linphone call failed: ${e.message}", e)
             _callState.value = CallState.DISCONNECTED
-            _currentCall.value = _currentCall.value?.copy(state = CallState.DISCONNECTED)
+            _currentCall.value = callInfo.copy(state = CallState.DISCONNECTED)
         }
     }
 
@@ -274,19 +414,11 @@ class SipManager @Inject constructor(
         }
 
         Log.i(TAG, "Answering call")
-
-        if (pjsipAvailable) {
-            try {
-                Log.i(TAG, "PJSIP answering call with 200 OK")
-            } catch (e: Exception) {
-                Log.e(TAG, "PJSIP answer failed: ${e.message}", e)
-            }
+        try {
+            core?.currentCall?.accept()
+        } catch (e: Exception) {
+            Log.e(TAG, "Linphone answer failed: ${e.message}", e)
         }
-
-        _callState.value = CallState.CONNECTED
-        _currentCall.value = _currentCall.value?.copy(state = CallState.CONNECTED)
-        callStartTime = System.currentTimeMillis()
-        startDurationTimer()
     }
 
     fun hangupCall() {
@@ -299,12 +431,11 @@ class SipManager @Inject constructor(
         Log.i(TAG, "Hanging up call")
         stopDurationTimer()
 
-        if (pjsipAvailable) {
-            try {
-                Log.i(TAG, "PJSIP hanging up call")
-            } catch (e: Exception) {
-                Log.e(TAG, "PJSIP hangup failed: ${e.message}", e)
-            }
+        try {
+            core?.currentCall?.terminate()
+                ?: core?.calls?.firstOrNull()?.terminate()
+        } catch (e: Exception) {
+            Log.e(TAG, "Linphone hangup failed: ${e.message}", e)
         }
 
         _callState.value = CallState.DISCONNECTED
@@ -327,20 +458,12 @@ class SipManager @Inject constructor(
             Log.w(TAG, "Cannot hold: call not connected")
             return
         }
-
         Log.i(TAG, "Putting call on hold")
-
-        if (pjsipAvailable) {
-            try {
-                Log.i(TAG, "PJSIP hold call")
-            } catch (e: Exception) {
-                Log.e(TAG, "PJSIP hold failed: ${e.message}", e)
-            }
+        try {
+            core?.currentCall?.pause()
+        } catch (e: Exception) {
+            Log.e(TAG, "Linphone hold failed: ${e.message}", e)
         }
-
-        _callState.value = CallState.HOLDING
-        _currentCall.value = _currentCall.value?.copy(state = CallState.HOLDING)
-        _isOnHold.value = true
     }
 
     fun unholdCall() {
@@ -348,20 +471,13 @@ class SipManager @Inject constructor(
             Log.w(TAG, "Cannot unhold: call not on hold")
             return
         }
-
         Log.i(TAG, "Resuming call from hold")
-
-        if (pjsipAvailable) {
-            try {
-                Log.i(TAG, "PJSIP unhold call")
-            } catch (e: Exception) {
-                Log.e(TAG, "PJSIP unhold failed: ${e.message}", e)
-            }
+        try {
+            core?.currentCall?.resume()
+                ?: core?.calls?.firstOrNull()?.resume()
+        } catch (e: Exception) {
+            Log.e(TAG, "Linphone unhold failed: ${e.message}", e)
         }
-
-        _callState.value = CallState.CONNECTED
-        _currentCall.value = _currentCall.value?.copy(state = CallState.CONNECTED)
-        _isOnHold.value = false
     }
 
     fun muteCall() {
@@ -369,33 +485,14 @@ class SipManager @Inject constructor(
             Log.w(TAG, "Cannot mute: no active call")
             return
         }
-
         Log.i(TAG, "Muting microphone")
-
-        if (pjsipAvailable) {
-            try {
-                Log.i(TAG, "PJSIP mute audio")
-            } catch (e: Exception) {
-                Log.e(TAG, "PJSIP mute failed: ${e.message}", e)
-            }
-        }
-
-        audioManager.isMicrophoneMute = true
+        core?.isMicEnabled = false
         _isMuted.value = true
     }
 
     fun unmuteCall() {
         Log.i(TAG, "Unmuting microphone")
-
-        if (pjsipAvailable) {
-            try {
-                Log.i(TAG, "PJSIP unmute audio")
-            } catch (e: Exception) {
-                Log.e(TAG, "PJSIP unmute failed: ${e.message}", e)
-            }
-        }
-
-        audioManager.isMicrophoneMute = false
+        core?.isMicEnabled = true
         _isMuted.value = false
     }
 
@@ -403,7 +500,17 @@ class SipManager @Inject constructor(
         val newState = !_isSpeakerOn.value
         Log.i(TAG, "Speaker ${if (newState) "ON" else "OFF"}")
 
-        audioManager.isSpeakerphoneOn = newState
+        core?.let { c ->
+            val currentCall = c.currentCall ?: c.calls.firstOrNull()
+            if (currentCall != null) {
+                val audioDevices = c.audioDevices
+                val targetType = if (newState) AudioDevice.Type.Speaker else AudioDevice.Type.Earpiece
+                val device = audioDevices.find { it.type == targetType }
+                if (device != null) {
+                    currentCall.outputAudioDevice = device
+                }
+            }
+        }
         _isSpeakerOn.value = newState
     }
 
@@ -412,15 +519,11 @@ class SipManager @Inject constructor(
             Log.w(TAG, "Cannot send DTMF: call not connected")
             return
         }
-
         Log.i(TAG, "Sending DTMF: $digit")
-
-        if (pjsipAvailable) {
-            try {
-                Log.i(TAG, "PJSIP send DTMF digit: $digit")
-            } catch (e: Exception) {
-                Log.e(TAG, "PJSIP DTMF failed: ${e.message}", e)
-            }
+        try {
+            core?.currentCall?.sendDtmf(digit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Linphone DTMF failed: ${e.message}", e)
         }
     }
 
@@ -434,15 +537,15 @@ class SipManager @Inject constructor(
         val transferUri = "sip:$number@${config.effectiveRealm}"
         Log.i(TAG, "Transferring call to: $transferUri")
 
-        if (pjsipAvailable) {
-            try {
-                Log.i(TAG, "PJSIP transfer to: $transferUri")
-            } catch (e: Exception) {
-                Log.e(TAG, "PJSIP transfer failed: ${e.message}", e)
+        try {
+            val address = Factory.instance().createAddress(transferUri)
+            if (address != null) {
+                core?.currentCall?.transferTo(address)
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Linphone transfer failed: ${e.message}", e)
+            hangupCall()
         }
-
-        hangupCall()
     }
 
     fun getCallDuration(): Flow<Int> = flow {
@@ -483,28 +586,28 @@ class SipManager @Inject constructor(
             hangupCall()
         }
 
-        if (_registrationState.value == RegistrationState.REGISTERED) {
-            unregister()
-        }
-
-        if (pjsipAvailable) {
-            try {
-                Log.i(TAG, "Destroying PJSIP endpoint")
-            } catch (e: Exception) {
-                Log.e(TAG, "Error shutting down PJSIP: ${e.message}", e)
-            }
+        try {
+            core?.removeListener(coreListener)
+            account?.let { core?.removeAccount(it) }
+            core?.clearAllAuthInfo()
+            core?.stop()
+            core = null
+            account = null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error shutting down Linphone: ${e.message}", e)
         }
 
         isInitialized = false
+        _registrationState.value = RegistrationState.UNREGISTERED
         Log.i(TAG, "SIP manager shut down")
     }
 
     fun isReady(): Boolean = isInitialized && _registrationState.value == RegistrationState.REGISTERED
 
-    fun isPjsipAvailable(): Boolean = pjsipAvailable
+    fun isPjsipAvailable(): Boolean = true
 
     fun onCallStateChanged(callId: String, state: CallState) {
-        Log.i(TAG, "Call state changed: $callId -> $state")
+        Log.i(TAG, "External call state changed: $callId -> $state")
         _callState.value = state
         _currentCall.value = _currentCall.value?.copy(state = state)
 
@@ -528,7 +631,7 @@ class SipManager @Inject constructor(
     }
 
     fun onRegistrationStateChanged(state: RegistrationState) {
-        Log.i(TAG, "Registration state changed: $state")
+        Log.i(TAG, "External registration state changed: $state")
         _registrationState.value = state
     }
 }

@@ -23,9 +23,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
@@ -200,13 +202,24 @@ fun LoginScreen(
             ) {
                 Spacer(modifier = Modifier.height(48.dp))
 
-                androidx.compose.foundation.Image(
-                    painter = painterResource(id = R.mipmap.ic_launcher),
-                    contentDescription = "Jarvis",
+                Box(
                     modifier = Modifier
-                        .size(96.dp)
-                        .clip(RoundedCornerShape(24.dp))
-                )
+                        .size(88.dp)
+                        .shadow(
+                            elevation = 16.dp,
+                            shape = RoundedCornerShape(22.dp),
+                            ambientColor = PrimaryBlue.copy(alpha = 0.3f),
+                            spotColor = PrimaryBlue.copy(alpha = 0.4f)
+                        )
+                        .clip(RoundedCornerShape(22.dp))
+                ) {
+                    androidx.compose.foundation.Image(
+                        painter = painterResource(id = R.mipmap.ic_launcher),
+                        contentDescription = "Jarvis",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 

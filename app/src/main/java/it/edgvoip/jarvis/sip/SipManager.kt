@@ -102,10 +102,10 @@ class SipManager @Inject constructor(
     private var account: Account? = null
 
     private val coreListener = object : CoreListenerStub() {
-        override fun onRegistrationStateChanged(
+        override fun onAccountRegistrationStateChanged(
             core: Core,
             account: Account,
-            state: LinphoneRegistrationState?,
+            state: LinphoneRegistrationState,
             message: String
         ) {
             Log.i(TAG, "Linphone registration state: $state - $message")

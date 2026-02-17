@@ -6,9 +6,9 @@ import com.google.gson.Gson
 import com.google.gson.JsonObject
 import io.elevenlabs.ConversationClient
 import io.elevenlabs.ConversationConfig
-import io.elevenlabs.ConversationMode
 import io.elevenlabs.ConversationSession
-import io.elevenlabs.ConversationStatus
+import io.elevenlabs.models.ConversationMode
+import io.elevenlabs.models.ConversationStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

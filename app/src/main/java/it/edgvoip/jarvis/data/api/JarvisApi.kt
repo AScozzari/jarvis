@@ -46,13 +46,9 @@ interface JarvisApi {
         @Path("slug") slug: String
     ): Response<AgentsResponse>
 
-    @GET("api/chatbot/public/{agentId}/config")
-    suspend fun getChatbotConfig(
-        @Path("agentId") agentId: String
-    ): Response<ApiResponse<ChatbotConfigResponse>>
-
-    @POST("api/chatbot/public/{agentId}/message")
+    @POST("api/{slug}/chatbot/agents/{agentId}/message")
     suspend fun sendChatbotMessage(
+        @Path("slug") slug: String,
         @Path("agentId") agentId: String,
         @Body request: MessageRequest
     ): Response<ApiResponse<MessageResponse>>

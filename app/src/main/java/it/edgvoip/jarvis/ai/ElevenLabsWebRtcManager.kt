@@ -11,7 +11,9 @@ import io.elevenlabs.models.ConversationMode
 import io.elevenlabs.models.ConversationStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,13 +27,15 @@ enum class AgentMode {
 enum class AgentStatus {
     DISCONNECTED,
     CONNECTING,
-    CONNECTED
+    CONNECTED,
+    ERROR
 }
 
 class ElevenLabsWebRtcManager {
 
     companion object {
         private const val TAG = "ElevenLabsWebRtc"
+        private const val CONNECTION_TIMEOUT_MS = 15_000L
     }
 
     private val _status = MutableStateFlow(AgentStatus.DISCONNECTED)
@@ -64,8 +68,14 @@ class ElevenLabsWebRtcManager {
     private val _isMuted = MutableStateFlow(false)
     val isMuted: StateFlow<Boolean> = _isMuted.asStateFlow()
 
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
     private var session: ConversationSession? = null
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var timeoutJob: Job? = null
+    private var lastAgentId: String? = null
+    private var lastContext: Context? = null
 
     fun startConversation(context: Context, agentId: String) {
         if (session != null) {
@@ -73,17 +83,36 @@ class ElevenLabsWebRtcManager {
             return
         }
 
+        lastAgentId = agentId
+        lastContext = context
         _status.value = AgentStatus.CONNECTING
+        _errorMessage.value = null
+
+        timeoutJob?.cancel()
+        timeoutJob = scope.launch {
+            delay(CONNECTION_TIMEOUT_MS)
+            if (_status.value == AgentStatus.CONNECTING) {
+                Log.e(TAG, "Connection timeout after ${CONNECTION_TIMEOUT_MS}ms")
+                _status.value = AgentStatus.ERROR
+                _errorMessage.value = "Connessione scaduta. Tocca per riprovare."
+                _isConnected.value = false
+                try { session?.endSession() } catch (_: Exception) {}
+                session = null
+            }
+        }
 
         val config = ConversationConfig(
             agentId = agentId,
             onConnect = { conversationId ->
                 Log.i(TAG, "Connected: conversationId=$conversationId")
+                timeoutJob?.cancel()
                 _conversationId.value = conversationId
                 _status.value = AgentStatus.CONNECTED
                 _isConnected.value = true
                 _isListening.value = true
+                _isMuted.value = false
                 _mode.value = AgentMode.LISTENING
+                _errorMessage.value = null
             },
             onMessage = { source, messageJson ->
                 Log.d(TAG, "Message [$source]: $messageJson")
@@ -120,13 +149,17 @@ class ElevenLabsWebRtcManager {
             onStatusChange = { status ->
                 Log.d(TAG, "Status changed: $status")
                 when (status) {
-                    ConversationStatus.CONNECTED -> _status.value = AgentStatus.CONNECTED
+                    ConversationStatus.CONNECTED -> {
+                        _status.value = AgentStatus.CONNECTED
+                        _errorMessage.value = null
+                    }
                     ConversationStatus.CONNECTING -> _status.value = AgentStatus.CONNECTING
                     ConversationStatus.DISCONNECTED -> {
                         _status.value = AgentStatus.DISCONNECTED
                         _isConnected.value = false
                         _isListening.value = false
                         _isSpeaking.value = false
+                        timeoutJob?.cancel()
                     }
                     else -> {
                         Log.d(TAG, "Unhandled status: $status")
@@ -144,10 +177,31 @@ class ElevenLabsWebRtcManager {
                 Log.i(TAG, "Session started for agentId=$agentId")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to start session: ${e.message}", e)
-                _status.value = AgentStatus.DISCONNECTED
+                timeoutJob?.cancel()
+                _status.value = AgentStatus.ERROR
+                _errorMessage.value = when {
+                    e.message?.contains("network", ignoreCase = true) == true ||
+                    e.message?.contains("connect", ignoreCase = true) == true ->
+                        "Impossibile connettersi. Verifica la connessione internet."
+                    e.message?.contains("permission", ignoreCase = true) == true ->
+                        "Permesso microfono necessario."
+                    e.message?.contains("agent", ignoreCase = true) == true ->
+                        "Agente non disponibile. Verifica la configurazione."
+                    else -> "Errore di connessione: ${e.localizedMessage ?: "Errore sconosciuto"}"
+                }
                 _isConnected.value = false
                 session = null
             }
+        }
+    }
+
+    fun retry() {
+        val ctx = lastContext ?: return
+        val id = lastAgentId ?: return
+        disconnect()
+        scope.launch {
+            delay(300)
+            startConversation(ctx, id)
         }
     }
 
@@ -181,6 +235,7 @@ class ElevenLabsWebRtcManager {
 
     fun disconnect() {
         Log.i(TAG, "Disconnecting session")
+        timeoutJob?.cancel()
         scope.launch {
             try {
                 session?.endSession()
@@ -198,7 +253,12 @@ class ElevenLabsWebRtcManager {
         _lastAgentMessage.value = null
         _lastUserMessage.value = null
         _isMuted.value = false
+        _errorMessage.value = null
         _mode.value = AgentMode.LISTENING
+    }
+
+    fun clearError() {
+        _errorMessage.value = null
     }
 
     private val gson = Gson()

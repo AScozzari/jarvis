@@ -906,34 +906,67 @@ private fun VoiceModeOverlay(viewModel: AiAgentViewModel) {
     val selectedAgent by viewModel.selectedAgent.collectAsState()
     val context = LocalContext.current
     val manager = remember { ElevenLabsWebRtcManager() }
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val infiniteTransition = rememberInfiniteTransition(label = "voice_pulse")
 
     val elevenLabsAgentId = selectedAgent?.elevenLabsAgentId
+    val agentStatus by manager.status.collectAsState()
     val isConnected by manager.isConnected.collectAsState()
     val isSpeaking by manager.isSpeaking.collectAsState()
     val isListening by manager.isListening.collectAsState()
     val vadScore by manager.vadScore.collectAsState()
     val lastAgentMessage by manager.lastAgentMessage.collectAsState()
+    val lastUserMessage by manager.lastUserMessage.collectAsState()
     val agentMuted by manager.isMuted.collectAsState()
+    val errorMessage by manager.errorMessage.collectAsState()
 
-    var showTextInput by remember { mutableStateOf(false) }
-    var textInput by remember { mutableStateOf("") }
+    val accentPurple = Color(0xFF7C4DFF)
+    val accentBlue = Color(0xFF448AFF)
+    val bgDark = Color(0xFF0D0D1A)
+    val cardBg = Color(0xFF1A1A2E)
+    val errorRed = Color(0xFFEF5350)
+    val endCallRed = Color(0xFFD32F2F)
 
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 0.9f,
-        targetValue = 1.1f + (if (isSpeaking) 0.15f else vadScore * 0.2f),
+    val outerPulse by infiniteTransition.animateFloat(
+        initialValue = 0.85f,
+        targetValue = 1.15f + (if (isSpeaking) 0.2f else vadScore * 0.15f),
         animationSpec = infiniteRepeatable(
-            animation = tween(if (isSpeaking) 800 else 1200),
+            animation = tween(if (isSpeaking) 600 else 1500, easing = androidx.compose.animation.core.FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
-        label = "pulse_scale"
+        label = "outer_pulse"
     )
 
-    LaunchedEffect(elevenLabsAgentId) {
-        if (elevenLabsAgentId != null) {
-            manager.startConversation(context, elevenLabsAgentId)
-        }
-    }
+    val innerPulse by infiniteTransition.animateFloat(
+        initialValue = 0.92f,
+        targetValue = 1.08f + (if (isSpeaking) 0.1f else vadScore * 0.1f),
+        animationSpec = infiniteRepeatable(
+            animation = tween(if (isSpeaking) 500 else 1200, easing = androidx.compose.animation.core.LinearOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "inner_pulse"
+    )
+
+    val wave1 by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "wave1"
+    )
+
+    val wave2 by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2500),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "wave2"
+    )
+
+    var callStarted by remember { mutableStateOf(false) }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -944,216 +977,418 @@ private fun VoiceModeOverlay(viewModel: AiAgentViewModel) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.9f)),
-        contentAlignment = Alignment.Center
+            .background(bgDark)
     ) {
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(20.dp),
-            modifier = Modifier.padding(horizontal = 32.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .navigationBarsPadding()
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(
-                modifier = Modifier
-                    .size(180.dp)
-                    .scale(if (isConnected) pulseScale else 1f)
-                    .background(
-                        when {
-                            isSpeaking -> Color(0xFF6C63FF).copy(alpha = 0.25f)
-                            isConnected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                            else -> Color.Gray.copy(alpha = 0.15f)
-                        },
-                        CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(130.dp)
-                        .background(
-                            when {
-                                isSpeaking -> Color(0xFF6C63FF).copy(alpha = 0.45f)
-                                isConnected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                                else -> Color.Gray.copy(alpha = 0.25f)
-                            },
-                            CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    when {
-                        elevenLabsAgentId != null && !isConnected -> {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(40.dp),
-                                strokeWidth = 3.dp,
-                                color = Color.White.copy(alpha = 0.7f)
-                            )
-                        }
-                        isSpeaking -> {
-                            Icon(
-                                Icons.Default.SmartToy,
-                                contentDescription = null,
-                                modifier = Modifier.size(52.dp),
-                                tint = Color.White
-                            )
-                        }
-                        else -> {
-                            Icon(
-                                Icons.Default.Mic,
-                                contentDescription = null,
-                                modifier = Modifier.size(52.dp),
-                                tint = if (isConnected) Color.White else Color.White.copy(alpha = 0.5f)
-                            )
-                        }
-                    }
-                }
-            }
+            Spacer(modifier = Modifier.height(48.dp))
 
             Text(
                 text = selectedAgent?.name ?: "AI Agent",
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.headlineMedium,
                 color = Color.White,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
             )
 
-            Text(
-                text = when {
-                    elevenLabsAgentId == null -> "Agente non supporta voce"
-                    !isConnected -> "Connessione in corso..."
-                    isSpeaking -> "Sta parlando..."
-                    isListening -> "In ascolto..."
-                    else -> "Connesso"
-                },
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color.White.copy(alpha = 0.7f)
-            )
+            Spacer(modifier = Modifier.height(4.dp))
 
-            if (lastAgentMessage != null && isConnected) {
-                Text(
-                    text = lastAgentMessage ?: "",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.5f),
-                    textAlign = TextAlign.Center,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
+            val statusText = when {
+                elevenLabsAgentId == null -> "Questo agente supporta solo chat testuale"
+                !callStarted -> "Premi per iniziare la conversazione"
+                agentStatus == it.edgvoip.jarvis.ai.AgentStatus.ERROR -> errorMessage ?: "Errore di connessione"
+                agentStatus == it.edgvoip.jarvis.ai.AgentStatus.CONNECTING -> "Connessione in corso..."
+                isSpeaking -> "Sta parlando..."
+                isListening && !agentMuted -> "In ascolto..."
+                agentMuted -> "Microfono disattivato"
+                isConnected -> "Connesso"
+                else -> "Disconnesso"
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            if (showTextInput && isConnected) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    TextField(
-                        value = textInput,
-                        onValueChange = { textInput = it },
-                        modifier = Modifier.weight(1f),
-                        placeholder = { Text("Scrivi all'agente...") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(24.dp),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.White.copy(alpha = 0.15f),
-                            unfocusedContainerColor = Color.White.copy(alpha = 0.1f),
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            focusedPlaceholderColor = Color.White.copy(alpha = 0.4f),
-                            unfocusedPlaceholderColor = Color.White.copy(alpha = 0.4f)
-                        )
-                    )
-                    IconButton(
-                        onClick = {
-                            if (textInput.isNotBlank()) {
-                                manager.sendTextMessage(textInput.trim())
-                                textInput = ""
-                            }
-                        },
-                        enabled = textInput.isNotBlank(),
-                        modifier = Modifier
-                            .size(44.dp)
-                            .background(
-                                if (textInput.isNotBlank()) MaterialTheme.colorScheme.primary
-                                else Color.White.copy(alpha = 0.1f),
-                                CircleShape
-                            )
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.Send,
-                            contentDescription = "Invia",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
+            val statusColor = when {
+                agentStatus == it.edgvoip.jarvis.ai.AgentStatus.ERROR -> errorRed
+                isSpeaking -> accentPurple
+                isListening && !agentMuted -> Color(0xFF4CAF50)
+                agentMuted -> Color(0xFFFF9800)
+                isConnected -> Color(0xFF4CAF50)
+                else -> Color.White.copy(alpha = 0.5f)
             }
 
             Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                if (isConnected) {
-                    Surface(
-                        onClick = { manager.toggleMute() },
-                        shape = CircleShape,
-                        color = if (agentMuted) Color(0xFFD32F2F) else Color.White.copy(alpha = 0.15f)
-                    ) {
-                        Icon(
-                            if (agentMuted) Icons.Default.MicOff else Icons.Default.Mic,
-                            contentDescription = if (agentMuted) "Attiva mic" else "Muta mic",
-                            tint = Color.White,
-                            modifier = Modifier
-                                .padding(14.dp)
-                                .size(24.dp)
-                        )
-                    }
-
-                    Surface(
-                        onClick = { showTextInput = !showTextInput },
-                        shape = CircleShape,
-                        color = if (showTextInput) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.15f)
-                    ) {
-                        Icon(
-                            Icons.Default.Edit,
-                            contentDescription = "Scrivi",
-                            tint = Color.White,
-                            modifier = Modifier
-                                .padding(14.dp)
-                                .size(24.dp)
-                        )
-                    }
+                if (isConnected && agentStatus != it.edgvoip.jarvis.ai.AgentStatus.ERROR) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(statusColor, CircleShape)
+                    )
                 }
+                Text(
+                    text = statusText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = statusColor,
+                    textAlign = TextAlign.Center
+                )
+            }
 
-                Surface(
-                    onClick = {
-                        manager.disconnect()
-                        viewModel.toggleVoiceMode()
-                    },
-                    shape = RoundedCornerShape(24.dp),
-                    color = Color(0xFFD32F2F)
+            Spacer(modifier = Modifier.weight(0.3f))
+
+            if (agentStatus == it.edgvoip.jarvis.ai.AgentStatus.ERROR) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 28.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(120.dp)
+                            .background(errorRed.copy(alpha = 0.15f), CircleShape),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Default.Close,
                             contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(52.dp),
+                            tint = errorRed
                         )
+                    }
+
+                    Text(
+                        text = errorMessage ?: "Errore sconosciuto",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color.White.copy(alpha = 0.7f),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 32.dp)
+                    )
+
+                    Surface(
+                        onClick = {
+                            callStarted = true
+                            manager.retry()
+                        },
+                        shape = RoundedCornerShape(24.dp),
+                        color = accentPurple
+                    ) {
                         Text(
-                            text = "Chiudi",
+                            text = "Riprova",
                             color = Color.White,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(horizontal = 32.dp, vertical = 14.dp)
                         )
                     }
                 }
+            } else if (elevenLabsAgentId == null) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(120.dp)
+                            .background(Color.White.copy(alpha = 0.08f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.MicOff,
+                            contentDescription = null,
+                            modifier = Modifier.size(52.dp),
+                            tint = Color.White.copy(alpha = 0.4f)
+                        )
+                    }
+
+                    Text(
+                        text = "Questo agente non supporta la conversazione vocale.\nPuoi usare la chat testuale.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color.White.copy(alpha = 0.6f),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 24.dp)
+                    )
+                }
+            } else if (!callStarted) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(160.dp)
+                            .background(accentPurple.copy(alpha = 0.12f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(120.dp)
+                                .background(accentPurple.copy(alpha = 0.25f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Mic,
+                                contentDescription = null,
+                                modifier = Modifier.size(56.dp),
+                                tint = Color.White.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+
+                    Surface(
+                        onClick = {
+                            callStarted = true
+                            if (elevenLabsAgentId != null) {
+                                manager.startConversation(context, elevenLabsAgentId)
+                            }
+                        },
+                        shape = RoundedCornerShape(28.dp),
+                        color = accentPurple,
+                        modifier = Modifier.widthIn(min = 200.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 32.dp, vertical = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Mic,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Chiama agente",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = "Conversazione vocale in tempo reale",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.4f)
+                    )
+                }
+            } else {
+                Box(contentAlignment = Alignment.Center) {
+                    if (isConnected) {
+                        Box(
+                            modifier = Modifier
+                                .size(220.dp)
+                                .scale(wave1)
+                                .background(
+                                    (if (isSpeaking) accentPurple else accentBlue)
+                                        .copy(alpha = (1f - wave1) * 0.3f),
+                                    CircleShape
+                                )
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .size(200.dp)
+                                .scale(wave2)
+                                .background(
+                                    (if (isSpeaking) accentPurple else accentBlue)
+                                        .copy(alpha = (1f - wave2) * 0.2f),
+                                    CircleShape
+                                )
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .size(180.dp)
+                            .scale(if (isConnected) outerPulse else 1f)
+                            .background(
+                                when {
+                                    isSpeaking -> accentPurple.copy(alpha = 0.2f)
+                                    isConnected -> accentBlue.copy(alpha = 0.15f)
+                                    else -> Color.White.copy(alpha = 0.05f)
+                                },
+                                CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(130.dp)
+                                .scale(if (isConnected) innerPulse else 1f)
+                                .background(
+                                    when {
+                                        isSpeaking -> accentPurple.copy(alpha = 0.45f)
+                                        isConnected -> accentBlue.copy(alpha = 0.35f)
+                                        else -> Color.White.copy(alpha = 0.1f)
+                                    },
+                                    CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            when {
+                                agentStatus == it.edgvoip.jarvis.ai.AgentStatus.CONNECTING -> {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(44.dp),
+                                        strokeWidth = 3.dp,
+                                        color = Color.White.copy(alpha = 0.8f)
+                                    )
+                                }
+                                isSpeaking -> {
+                                    Icon(
+                                        Icons.Default.SmartToy,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(56.dp),
+                                        tint = Color.White
+                                    )
+                                }
+                                else -> {
+                                    Icon(
+                                        if (agentMuted) Icons.Default.MicOff else Icons.Default.Mic,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(56.dp),
+                                        tint = if (isConnected) Color.White else Color.White.copy(alpha = 0.5f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (isConnected) {
+                val displayMessage = if (isSpeaking) lastAgentMessage else lastUserMessage
+                if (displayMessage != null) {
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = cardBg,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text(
+                                text = if (isSpeaking) "Agente" else "Tu",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (isSpeaking) accentPurple else accentBlue,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = displayMessage,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.White.copy(alpha = 0.8f),
+                                maxLines = 3,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.weight(0.5f))
+
+            if (isConnected || agentStatus == it.edgvoip.jarvis.ai.AgentStatus.ERROR || elevenLabsAgentId == null || !callStarted) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 32.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (isConnected) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Surface(
+                                onClick = { manager.toggleMute() },
+                                shape = CircleShape,
+                                color = if (agentMuted) Color(0xFFFF9800) else Color.White.copy(alpha = 0.1f),
+                                modifier = Modifier.size(56.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                    Icon(
+                                        if (agentMuted) Icons.Default.MicOff else Icons.Default.Mic,
+                                        contentDescription = if (agentMuted) "Attiva mic" else "Muta mic",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            }
+                            Text(
+                                text = if (agentMuted) "Muto" else "Mic",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White.copy(alpha = 0.6f)
+                            )
+                        }
+                    }
+
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Surface(
+                            onClick = {
+                                manager.disconnect()
+                                viewModel.toggleVoiceMode()
+                            },
+                            shape = CircleShape,
+                            color = endCallRed,
+                            modifier = Modifier.size(64.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "Chiudi conversazione",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+                        }
+                        Text(
+                            text = "Chiudi",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White.copy(alpha = 0.6f)
+                        )
+                    }
+
+                    if (isConnected) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Surface(
+                                onClick = { /* placeholder for speaker toggle */ },
+                                shape = CircleShape,
+                                color = Color.White.copy(alpha = 0.1f),
+                                modifier = Modifier.size(56.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                    Icon(
+                                        Icons.Default.SmartToy,
+                                        contentDescription = "Agente",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            }
+                            Text(
+                                text = "Agente",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White.copy(alpha = 0.6f)
+                            )
+                        }
+                    }
+                }
+            } else {
+                Spacer(modifier = Modifier.height(32.dp))
             }
         }
     }

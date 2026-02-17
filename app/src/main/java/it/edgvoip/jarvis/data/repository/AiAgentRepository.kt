@@ -72,12 +72,14 @@ class AiAgentRepository @Inject constructor(
         history: List<ChatMessage>
     ): Result<MessageResponse> {
         return try {
+            val slug = tokenManager.getTenantSlug()
+                ?: return Result.failure(Exception("Nessun tenant configurato"))
             val request = MessageRequest(
                 message = message,
                 sessionId = sessionId,
                 conversationHistory = history
             )
-            val response = api.sendChatbotMessage(agentId, request)
+            val response = api.sendChatbotMessage(slug, agentId, request)
             if (response.isSuccessful) {
                 val body = response.body()
                 if (body != null && body.success && body.data != null) {

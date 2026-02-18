@@ -803,7 +803,7 @@ private fun ElevenLabsVoiceView(viewModel: AiAgentViewModel, agent: ChatbotAgent
                                 if (sessionActive && isConnected) {
                                     manager.disconnect()
                                     sessionActive = false
-                                } else if (!sessionActive && elevenLabsAgentId != null) {
+                                } else if (!sessionActive && !elevenLabsAgentId.isNullOrBlank()) {
                                     if (audioPermissionGranted) {
                                         sessionActive = true
                                         manager.startConversation(context, elevenLabsAgentId)

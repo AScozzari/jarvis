@@ -627,6 +627,7 @@ class WebRtcPhoneManager @Inject constructor(
         _isMuted.value = false
     }
 
+    @Suppress("DEPRECATION")
     fun toggleSpeaker() {
         val newState = !_isSpeakerOn.value
         Log.i(TAG, "Speaker ${if (newState) "ON" else "OFF"}")
@@ -699,11 +700,13 @@ class WebRtcPhoneManager @Inject constructor(
 
     fun isReady(): Boolean = isInitialized && _registrationState.value == RegistrationState.REGISTERED
 
+    @Suppress("DEPRECATION")
     private fun setAudioModeInCall() {
         audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
         audioManager.isSpeakerphoneOn = false
     }
 
+    @Suppress("DEPRECATION")
     private fun resetAudioMode() {
         audioManager.mode = AudioManager.MODE_NORMAL
         audioManager.isSpeakerphoneOn = false
@@ -1337,6 +1340,7 @@ class WebRtcPhoneManager @Inject constructor(
         }
     }
 
+    @Suppress("UNUSED_PARAMETER")
     private fun handleInviteResponse(parsed: SipParsed, raw: String) {
         val toHeaderFull = parsed.headers["to"] ?: parsed.headers["t"] ?: ""
         val tagMatch = Regex(";tag=([^;,>\\s]+)").find(toHeaderFull)
@@ -1473,7 +1477,7 @@ class WebRtcPhoneManager @Inject constructor(
             setRemoteDescription(remoteSdp, SessionDescription.Type.OFFER)
         }
         incomingInviteRaw = raw
-        val config = currentConfig ?: return
+        currentConfig ?: return
 
         scope.launch {
             val answerSdp = createAnswerSdp()
@@ -1506,6 +1510,7 @@ class WebRtcPhoneManager @Inject constructor(
         sendRaw(sb.toString())
     }
 
+    @Suppress("UNUSED_PARAMETER")
     private fun handleAuthChallenge(parsed: SipParsed, method: String, raw: String) {
         val config = currentConfig ?: return
         val wwwAuth = parsed.headers["www-authenticate"]

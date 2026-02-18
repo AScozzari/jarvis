@@ -60,11 +60,10 @@ class MainViewModel @Inject constructor(
     }
 
     private fun performAutoLogout(reason: String) {
-        if (!_isAuthenticated.value) return
+        if (!_isAuthenticated.compareAndSet(expect = true, update = false)) return
+        Log.i(TAG, "Auto-logout: shutting down SIP and clearing session")
         viewModelScope.launch {
-            Log.i(TAG, "Auto-logout: shutting down SIP and clearing session")
             try { sipManager.shutdown() } catch (_: Exception) { }
-            _isAuthenticated.value = false
             _sessionExpiredMessage.tryEmit(reason)
         }
     }

@@ -534,16 +534,48 @@ class WebRtcPhoneManager @Inject constructor(
         when (currentState) {
             CallState.CALLING, CallState.RINGING -> {
                 Log.i(TAG, "Sending CANCEL for unanswered call")
+                val savedCallId = currentCallSipId
+                val savedConfig = currentConfig
+                val savedLocalTag = localTag
+                val savedRemoteTag = remoteTag
+                val savedNumber = _currentCall.value?.number
+                val savedDirection = _currentCall.value?.direction
                 sendSipCancel()
+                endCallCleanup("User hangup (CANCEL)")
                 scope.launch {
                     delay(500)
-                    val stateAfterCancel = _callState.value
-                    if (stateAfterCancel == CallState.CONNECTED) {
-                        Log.i(TAG, "Call connected after CANCEL, sending BYE")
-                        sendSipBye()
-                        endCallCleanup("User hangup (BYE after late answer)")
+                    if (savedCallId.isNotEmpty() && savedConfig != null && savedNumber != null) {
+                        val domain = savedConfig.effectiveRealm
+                        val username = savedConfig.sipUsername
+                        val toUri = if (savedDirection == CallDirection.OUTGOING) {
+                            "sip:$savedNumber@$domain"
+                        } else {
+                            "sip:$username@$domain"
+                        }
+                        val branch = generateBranch()
+                        val cseq = cseqCounter.getAndIncrement()
+
+                        val sb = StringBuilder()
+                        sb.appendLine("BYE $toUri SIP/2.0")
+                        sb.appendLine("Via: SIP/2.0/WSS ${generateViaHost()};branch=$branch;rport")
+                        sb.appendLine("Max-Forwards: 70")
+                        if (savedDirection == CallDirection.OUTGOING) {
+                            sb.appendLine("From: <sip:$username@$domain>;tag=$savedLocalTag")
+                            sb.appendLine("To: <sip:$savedNumber@$domain>${if (savedRemoteTag.isNotEmpty()) ";tag=$savedRemoteTag" else ""}")
+                        } else {
+                            sb.appendLine("From: <sip:$savedNumber@$domain>${if (savedRemoteTag.isNotEmpty()) ";tag=$savedRemoteTag" else ""}")
+                            sb.appendLine("To: <sip:$username@$domain>;tag=$savedLocalTag")
+                        }
+                        sb.appendLine("Call-ID: $savedCallId")
+                        sb.appendLine("CSeq: $cseq BYE")
+                        sb.appendLine("User-Agent: JarvisAndroid/1.0")
+                        sb.appendLine("Content-Length: 0")
+                        sb.appendLine()
+                        Log.i(TAG, "Sending safety BYE after CANCEL for callId=$savedCallId")
+                        sendRaw(sb.toString())
                     }
                 }
+                return
             }
             CallState.INCOMING -> sendSip486Busy()
             CallState.CONNECTED, CallState.HOLDING -> {

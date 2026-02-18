@@ -17,7 +17,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -95,6 +94,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -460,16 +460,17 @@ private fun ElevenLabsVoiceView(viewModel: AiAgentViewModel, agent: ChatbotAgent
         label = "wave2"
     )
 
-    val isLightTheme = !isSystemInDarkTheme()
-    val voiceBgColor = if (isLightTheme) MaterialTheme.colorScheme.surfaceVariant else ElevenLabsBgDark
-    val voiceTextColor = if (isLightTheme) MaterialTheme.colorScheme.onSurface else Color.White
-    val voiceSubtleColor = if (isLightTheme) MaterialTheme.colorScheme.onSurfaceVariant else Color.White.copy(alpha = 0.6f)
-    val voiceCardColor = if (isLightTheme) MaterialTheme.colorScheme.surface else ElevenLabsCardBg
-    val voiceOrbIdle = if (isLightTheme) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f) else Color.White.copy(alpha = 0.06f)
-    val voiceOrbIdleInner = if (isLightTheme) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f) else Color.White.copy(alpha = 0.1f)
-    val voiceOrbIdleInner2 = if (isLightTheme) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.03f) else Color.White.copy(alpha = 0.03f)
-    val voiceMuteBtn = if (isLightTheme) MaterialTheme.colorScheme.surfaceVariant else Color.White.copy(alpha = 0.1f)
-    val voiceIconTint = if (isLightTheme) MaterialTheme.colorScheme.onSurface else Color.White
+    val surfaceLuminance = MaterialTheme.colorScheme.surface.luminance()
+    val isDarkMode = surfaceLuminance < 0.5f
+    val voiceBgColor = if (isDarkMode) ElevenLabsBgDark else MaterialTheme.colorScheme.surfaceVariant
+    val voiceTextColor = MaterialTheme.colorScheme.onSurface
+    val voiceSubtleColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val voiceCardColor = if (isDarkMode) ElevenLabsCardBg else MaterialTheme.colorScheme.surface
+    val voiceOrbIdle = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
+    val voiceOrbIdleInner = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+    val voiceOrbIdleInner2 = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.03f)
+    val voiceMuteBtn = if (isDarkMode) Color.White.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant
+    val voiceIconTint = MaterialTheme.colorScheme.onSurface
 
     Box(
         modifier = Modifier

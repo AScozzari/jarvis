@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import it.edgvoip.jarvis.ai.ElevenLabsWebRtcManager
 import it.edgvoip.jarvis.data.db.ConversationEntity
 import it.edgvoip.jarvis.data.db.MessageEntity
 import it.edgvoip.jarvis.data.model.ChatMessage
@@ -68,9 +69,6 @@ class AiAgentViewModel @Inject constructor(
     private val _deleteConversationId = MutableStateFlow("")
     val deleteConversationId: StateFlow<String> = _deleteConversationId.asStateFlow()
 
-    private val _isVoiceMode = MutableStateFlow(false)
-    val isVoiceMode: StateFlow<Boolean> = _isVoiceMode.asStateFlow()
-
     private val _inChatView = MutableStateFlow(false)
     val inChatView: StateFlow<Boolean> = _inChatView.asStateFlow()
 
@@ -83,13 +81,24 @@ class AiAgentViewModel @Inject constructor(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
+    private val _selectedTab = MutableStateFlow(0)
+    val selectedTab: StateFlow<Int> = _selectedTab.asStateFlow()
+
+    val elevenLabsManager = ElevenLabsWebRtcManager()
+
     private var messagesJob: Job? = null
     private var conversationsJob: Job? = null
+    private var agentChatInitialized = false
 
     init {
         _tenantSlug.value = repository.getTenantSlug() ?: ""
         loadConversations()
         loadAgents()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        elevenLabsManager.disconnect()
     }
 
     fun loadConversations() {
@@ -120,12 +129,6 @@ class AiAgentViewModel @Inject constructor(
                     filtered.firstOrNull()
                 }
                 _selectedAgent.value = agent
-                if (agent != null) {
-                    _inChatView.value = true
-                    if (agent.isElevenLabs) {
-                        _isVoiceMode.value = true
-                    }
-                }
             }.onFailure {
                 _errorMessage.value = it.message ?: "Errore nel caricamento degli agenti"
             }
@@ -135,6 +138,13 @@ class AiAgentViewModel @Inject constructor(
 
     fun refreshAgents() {
         loadAgents()
+    }
+
+    fun selectTab(index: Int) {
+        _selectedTab.value = index
+        if (index == 0) {
+            _inChatView.value = false
+        }
     }
 
     fun checkPreferredAgentChanged() {
@@ -148,10 +158,10 @@ class AiAgentViewModel @Inject constructor(
                 val agent = _availableAgents.value.find { it.id == preferredId }
                 if (agent != null) {
                     _selectedAgent.value = agent
-                    _isVoiceMode.value = agent.isElevenLabs
+                    agentChatInitialized = false
                     _currentConversation.value = null
                     _messages.value = emptyList()
-                    _inChatView.value = true
+                    _selectedTab.value = 0
                 }
             }
         }
@@ -196,6 +206,16 @@ class AiAgentViewModel @Inject constructor(
         _messages.value = emptyList()
         _inputMessage.value = ""
         _inChatView.value = true
+        agentChatInitialized = false
+        messagesJob?.cancel()
+    }
+
+    fun initAgentChatIfNeeded() {
+        if (agentChatInitialized) return
+        agentChatInitialized = true
+        _currentConversation.value = null
+        _messages.value = emptyList()
+        _inputMessage.value = ""
         messagesJob?.cancel()
     }
 
@@ -249,7 +269,7 @@ class AiAgentViewModel @Inject constructor(
                     repository.addMessage(
                         conversation.id,
                         "assistant",
-                        "⚠️ Errore: ${error.message ?: "Errore sconosciuto"}"
+                        "Errore: ${error.message ?: "Errore sconosciuto"}"
                     )
                 }
             } catch (e: Exception) {
@@ -312,7 +332,7 @@ class AiAgentViewModel @Inject constructor(
         viewModelScope.launch {
             repository.deleteConversation(id)
             if (_currentConversation.value?.id == id) {
-                goBack()
+                goBackFromChat()
             }
             dismissDeleteDialog()
         }
@@ -339,28 +359,32 @@ class AiAgentViewModel @Inject constructor(
         }
     }
 
-    fun toggleVoiceMode() {
-        _isVoiceMode.value = !_isVoiceMode.value
-    }
-
     fun selectAgent(agent: ChatbotAgent) {
+        if (_selectedAgent.value?.id != agent.id) {
+            elevenLabsManager.disconnect()
+            agentChatInitialized = false
+        }
         _selectedAgent.value = agent
         _showAgentPicker.value = false
-        _isVoiceMode.value = agent.isElevenLabs
-        startNewConversation(agent.id)
+        _selectedTab.value = 0
+        _currentConversation.value = null
+        _messages.value = emptyList()
     }
 
     fun dismissAgentPicker() {
         _showAgentPicker.value = false
     }
 
-    fun goBack() {
+    fun goBackFromChat() {
         _currentConversation.value = null
         _messages.value = emptyList()
         _inputMessage.value = ""
-        _isVoiceMode.value = false
         _inChatView.value = false
         messagesJob?.cancel()
+    }
+
+    fun goBack() {
+        goBackFromChat()
     }
 
     fun clearError() {

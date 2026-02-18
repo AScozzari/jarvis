@@ -400,13 +400,7 @@ private fun ElevenLabsVoiceView(viewModel: AiAgentViewModel, agent: ChatbotAgent
     val agentMuted by manager.isMuted.collectAsState()
     val errorMessage by manager.errorMessage.collectAsState()
 
-    var sessionActive by remember { mutableStateOf(false) }
-
-    LaunchedEffect(isConnected, agentStatus) {
-        if (!isConnected && agentStatus == it.edgvoip.jarvis.ai.AgentStatus.DISCONNECTED) {
-            sessionActive = false
-        }
-    }
+    val sessionActive = agentStatus != it.edgvoip.jarvis.ai.AgentStatus.DISCONNECTED
 
     var audioPermissionGranted by remember {
         mutableStateOf(
@@ -421,8 +415,7 @@ private fun ElevenLabsVoiceView(viewModel: AiAgentViewModel, agent: ChatbotAgent
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
         audioPermissionGranted = granted
-        if (granted && elevenLabsAgentId != null) {
-            sessionActive = true
+        if (granted && !elevenLabsAgentId.isNullOrBlank()) {
             manager.startConversation(context, elevenLabsAgentId)
         }
     }
@@ -574,7 +567,6 @@ private fun ElevenLabsVoiceView(viewModel: AiAgentViewModel, agent: ChatbotAgent
 
                     Surface(
                         onClick = {
-                            sessionActive = true
                             manager.retry()
                         },
                         shape = RoundedCornerShape(24.dp),
@@ -809,10 +801,8 @@ private fun ElevenLabsVoiceView(viewModel: AiAgentViewModel, agent: ChatbotAgent
                             onClick = {
                                 if (sessionActive) {
                                     manager.disconnect()
-                                    sessionActive = false
                                 } else if (!elevenLabsAgentId.isNullOrBlank()) {
                                     if (audioPermissionGranted) {
-                                        sessionActive = true
                                         manager.startConversation(context, elevenLabsAgentId)
                                     } else {
                                         audioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)

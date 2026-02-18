@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.automirrored.filled.PhoneForwarded
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -57,8 +58,6 @@ import it.edgvoip.jarvis.sip.CallState
 import it.edgvoip.jarvis.sip.WebRtcPhoneManager
 import it.edgvoip.jarvis.ui.theme.CallGreen
 import it.edgvoip.jarvis.ui.theme.CallRed
-import it.edgvoip.jarvis.ui.theme.DarkBackground
-import it.edgvoip.jarvis.ui.theme.DarkSurfaceVariant
 import it.edgvoip.jarvis.ui.theme.PrimaryBlue
 import it.edgvoip.jarvis.ui.theme.WarningOrange
 
@@ -125,7 +124,7 @@ fun InCallScreen(
             if (callerName != null) {
                 Text(
                     text = callerName,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
@@ -133,14 +132,14 @@ fun InCallScreen(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = callerNumber,
-                    color = Color.White.copy(alpha = 0.6f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 16.sp,
                     textAlign = TextAlign.Center
                 )
             } else {
                 Text(
                     text = callerNumber,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
@@ -155,7 +154,7 @@ fun InCallScreen(
                     CallState.CONNECTED -> CallGreen
                     CallState.HOLDING -> WarningOrange
                     CallState.DISCONNECTED -> CallRed
-                    else -> Color.White.copy(alpha = 0.7f)
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
                 },
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium
@@ -165,7 +164,7 @@ fun InCallScreen(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = formatDurationTimer(duration),
-                    color = Color.White.copy(alpha = 0.5f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Light
                 )
@@ -225,7 +224,7 @@ fun InCallScreen(
                             Icon(
                                 imageVector = Icons.Default.CallEnd,
                                 contentDescription = "Rifiuta",
-                                tint = Color.White,
+                                tint = MaterialTheme.colorScheme.onBackground,
                                 modifier = Modifier.size(32.dp)
                             )
                         }
@@ -253,7 +252,7 @@ fun InCallScreen(
                             Icon(
                                 imageVector = Icons.Default.Call,
                                 contentDescription = "Rispondi",
-                                tint = Color.White,
+                                tint = MaterialTheme.colorScheme.onBackground,
                                 modifier = Modifier.size(32.dp)
                             )
                         }
@@ -362,7 +361,7 @@ fun InCallScreen(
                         Icon(
                             imageVector = Icons.Default.CallEnd,
                             contentDescription = "Chiudi chiamata",
-                            tint = Color.White,
+                            tint = MaterialTheme.colorScheme.onBackground,
                             modifier = Modifier.size(32.dp)
                         )
                     }
@@ -378,14 +377,14 @@ fun InCallScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "Chiamata terminata",
-                        color = Color.White.copy(alpha = 0.5f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 18.sp
                     )
                     if (duration > 0) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Durata: ${formatDurationTimer(duration)}",
-                            color = Color.White.copy(alpha = 0.4f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 14.sp
                         )
                     }
@@ -445,7 +444,7 @@ private fun InCallActionButton(
                 .size(56.dp)
                 .clip(CircleShape)
                 .background(
-                    if (isActive) activeColor.copy(alpha = 0.25f) else DarkSurfaceVariant
+                    if (isActive) activeColor.copy(alpha = 0.25f) else MaterialTheme.colorScheme.surfaceVariant
                 )
                 .clickable(onClick = onClick),
             contentAlignment = Alignment.Center
@@ -453,14 +452,14 @@ private fun InCallActionButton(
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = if (isActive) activeColor else Color.White.copy(alpha = 0.8f),
+                tint = if (isActive) activeColor else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(24.dp)
             )
         }
         Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = label,
-            color = if (isActive) activeColor else Color.White.copy(alpha = 0.6f),
+            color = if (isActive) activeColor else MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
             textAlign = TextAlign.Center,
@@ -493,7 +492,7 @@ private fun DtmfOverlay(
             ) {
                 Text(
                     text = "Tastiera DTMF",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -501,7 +500,7 @@ private fun DtmfOverlay(
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Chiudi",
-                        tint = Color.White.copy(alpha = 0.7f)
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -525,7 +524,7 @@ private fun DtmfOverlay(
                             modifier = Modifier
                                 .size(64.dp)
                                 .clip(CircleShape)
-                                .background(DarkSurfaceVariant)
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
                                 .clickable {
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     sipManager.sendDtmf(digit)
@@ -534,7 +533,7 @@ private fun DtmfOverlay(
                         ) {
                             Text(
                                 text = digit.toString(),
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onBackground,
                                 fontSize = 28.sp,
                                 fontWeight = FontWeight.Light
                             )
@@ -575,7 +574,7 @@ private fun TransferOverlay(
             ) {
                 Text(
                     text = "Trasferisci a",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -583,7 +582,7 @@ private fun TransferOverlay(
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Chiudi",
-                        tint = Color.White.copy(alpha = 0.7f)
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -592,7 +591,7 @@ private fun TransferOverlay(
 
             Text(
                 text = transferNumber.ifEmpty { "Digita il numero" },
-                color = if (transferNumber.isEmpty()) Color.White.copy(alpha = 0.3f) else Color.White,
+                color = if (transferNumber.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onBackground,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Light,
                 textAlign = TextAlign.Center,
@@ -620,7 +619,7 @@ private fun TransferOverlay(
                             modifier = Modifier
                                 .size(56.dp)
                                 .clip(CircleShape)
-                                .background(DarkSurfaceVariant)
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
                                 .clickable {
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     onNumberChange(transferNumber + digit)
@@ -629,7 +628,7 @@ private fun TransferOverlay(
                         ) {
                             Text(
                                 text = digit.toString(),
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onBackground,
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Light
                             )
@@ -655,7 +654,7 @@ private fun TransferOverlay(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.PhoneForwarded,
                     contentDescription = "Trasferisci",
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.size(28.dp)
                 )
             }

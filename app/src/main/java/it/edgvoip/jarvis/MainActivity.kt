@@ -47,11 +47,16 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.collectAsState
+import androidx.datastore.preferences.core.stringPreferencesKey
 import dagger.hilt.android.AndroidEntryPoint
 import it.edgvoip.jarvis.ui.navigation.JarvisNavHost
 import it.edgvoip.jarvis.ui.navigation.Screen
 import it.edgvoip.jarvis.ui.navigation.navigateToBottomNavRoute
+import it.edgvoip.jarvis.ui.screens.settingsDataStore
 import it.edgvoip.jarvis.ui.theme.JarvisTheme
+import kotlinx.coroutines.flow.map
 
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
@@ -59,7 +64,18 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            JarvisTheme {
+            val context = this@MainActivity
+            val themePreference by context.settingsDataStore.data
+                .map { prefs -> prefs[stringPreferencesKey("app_theme")] ?: "system" }
+                .collectAsState(initial = "system")
+
+            val darkTheme = when (themePreference) {
+                "dark" -> true
+                "light" -> false
+                else -> isSystemInDarkTheme()
+            }
+
+            JarvisTheme(darkTheme = darkTheme) {
                 JarvisApp()
             }
         }

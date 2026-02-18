@@ -1,8 +1,11 @@
 package it.edgvoip.jarvis.ui.screens
 
+import android.content.Context
+import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import it.edgvoip.jarvis.data.api.TokenManager
 import it.edgvoip.jarvis.data.repository.AuthRepository
 import it.edgvoip.jarvis.data.repository.ForceLoginRequiredException
@@ -27,6 +30,7 @@ data class LoginUiState(
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val authRepository: AuthRepository,
     private val tokenManager: TokenManager
 ) : ViewModel() {
@@ -144,6 +148,11 @@ class LoginViewModel @Inject constructor(
             password = state.password,
             tenantSlug = state.tenantSlug.trim()
         )
+        viewModelScope.launch {
+            context.settingsDataStore.edit { prefs ->
+                prefs[SettingsViewModel.KEY_BIOMETRIC_ENABLED] = true
+            }
+        }
         _uiState.update { it.copy(showBiometricSetup = false) }
     }
 

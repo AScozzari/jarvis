@@ -41,6 +41,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -63,10 +64,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import it.edgvoip.jarvis.ui.theme.CallRed
-import it.edgvoip.jarvis.ui.theme.DarkBackground
-import it.edgvoip.jarvis.ui.theme.DarkOutline
-import it.edgvoip.jarvis.ui.theme.DarkSurface
-import it.edgvoip.jarvis.ui.theme.DarkSurfaceVariant
 import it.edgvoip.jarvis.ui.theme.PrimaryBlue
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -119,29 +116,26 @@ fun SettingsScreen(
                 TextButton(onClick = { viewModel.dismissLogoutDialog() }) {
                     Text("Annulla")
                 }
-            },
-            containerColor = DarkSurface,
-            titleContentColor = Color.White,
-            textContentColor = Color.White.copy(alpha = 0.7f)
+            }
         )
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkBackground)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         TopAppBar(
             title = {
                 Text(
                     text = "Impostazioni",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp
                 )
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = DarkSurface
+                containerColor = MaterialTheme.colorScheme.surface
             )
         )
 
@@ -380,13 +374,13 @@ private fun SettingSwitchItem(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(DarkSurfaceVariant),
+                .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.7f),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -396,13 +390,13 @@ private fun SettingSwitchItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Medium
             )
             Text(
                 text = subtitle,
-                color = Color.White.copy(alpha = 0.5f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 13.sp
             )
         }
@@ -411,10 +405,10 @@ private fun SettingSwitchItem(
             checked = checked,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
+                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
                 checkedTrackColor = PrimaryBlue,
-                uncheckedThumbColor = Color.White.copy(alpha = 0.7f),
-                uncheckedTrackColor = DarkSurfaceVariant
+                uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
             )
         )
     }
@@ -443,13 +437,13 @@ private fun SettingDropdownItem(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(DarkSurfaceVariant),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.7f),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -459,7 +453,7 @@ private fun SettingDropdownItem(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -474,14 +468,14 @@ private fun SettingDropdownItem(
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.background(DarkSurface)
+            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
         ) {
             options.forEach { (value, label) ->
                 DropdownMenuItem(
                     text = {
                         Text(
                             text = label,
-                            color = if (value == selectedValue) PrimaryBlue else Color.White,
+                            color = if (value == selectedValue) PrimaryBlue else MaterialTheme.colorScheme.onSurface,
                             fontWeight = if (value == selectedValue) FontWeight.Bold else FontWeight.Normal
                         )
                     },
@@ -538,8 +532,8 @@ private fun ThemeOption(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val bgColor = if (isSelected) PrimaryBlue.copy(alpha = 0.2f) else DarkSurfaceVariant
-    val contentColor = if (isSelected) PrimaryBlue else Color.White.copy(alpha = 0.6f)
+    val bgColor = if (isSelected) PrimaryBlue.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant
+    val contentColor = if (isSelected) PrimaryBlue else MaterialTheme.colorScheme.onSurfaceVariant
 
     Column(
         modifier = modifier
@@ -580,12 +574,12 @@ private fun SettingInfoItem(
     ) {
         Text(
             text = title,
-            color = Color.White.copy(alpha = 0.7f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 15.sp
         )
         Text(
             text = value,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onBackground,
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium
         )
@@ -597,6 +591,6 @@ private fun SettingsDivider() {
     HorizontalDivider(
         modifier = Modifier.padding(vertical = 4.dp),
         thickness = 1.dp,
-        color = DarkOutline.copy(alpha = 0.5f)
+        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
     )
 }

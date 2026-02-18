@@ -71,9 +71,6 @@ import it.edgvoip.jarvis.data.db.CallLogEntity
 import it.edgvoip.jarvis.data.db.ContactEntity
 import it.edgvoip.jarvis.ui.theme.CallGreen
 import it.edgvoip.jarvis.ui.theme.CallRed
-import it.edgvoip.jarvis.ui.theme.DarkBackground
-import it.edgvoip.jarvis.ui.theme.DarkSurface
-import it.edgvoip.jarvis.ui.theme.DarkSurfaceVariant
 import it.edgvoip.jarvis.ui.theme.PrimaryBlue
 import kotlinx.coroutines.launch
 import java.util.Date
@@ -115,12 +112,12 @@ fun PhoneScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkBackground)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         TabRow(
             selectedTabIndex = pagerState.currentPage,
-            containerColor = DarkSurface,
-            contentColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
             indicator = { tabPositions ->
                 TabRowDefaults.SecondaryIndicator(
                     modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
@@ -132,7 +129,7 @@ fun PhoneScreen(
             tabTitles.forEachIndexed { index, title ->
                 val selected = pagerState.currentPage == index
                 val textColor by animateColorAsState(
-                    targetValue = if (selected) PrimaryBlue else Color.White.copy(alpha = 0.6f),
+                    targetValue = if (selected) PrimaryBlue else MaterialTheme.colorScheme.onSurfaceVariant,
                     label = "tabColor"
                 )
                 Tab(
@@ -222,7 +219,7 @@ private fun DialerTab(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkBackground)
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -247,7 +244,7 @@ private fun DialerTab(
         ) {
             Text(
                 text = dialNumber.ifEmpty { " " },
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = if (dialNumber.length > 12) 28.sp else 36.sp,
                 fontWeight = FontWeight.Light,
                 textAlign = TextAlign.Center,
@@ -265,7 +262,7 @@ private fun DialerTab(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Backspace,
                         contentDescription = "Cancella",
-                        tint = Color.White.copy(alpha = 0.7f),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -322,7 +319,7 @@ private fun DialerTab(
             Icon(
                 imageVector = Icons.Default.Call,
                 contentDescription = "Chiama",
-                tint = Color.White,
+                tint = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.size(32.dp)
             )
         }
@@ -341,7 +338,7 @@ private fun DialButton(
         modifier = Modifier
             .size(80.dp)
             .clip(CircleShape)
-            .background(DarkSurfaceVariant)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
@@ -351,14 +348,14 @@ private fun DialButton(
         ) {
             Text(
                 text = digit,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Light
             )
             if (letters.isNotEmpty()) {
                 Text(
                     text = letters,
-                    color = Color.White.copy(alpha = 0.5f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 2.sp
@@ -383,13 +380,13 @@ private fun RecentiTab(
                 Icon(
                     imageVector = Icons.Default.Dialpad,
                     contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.3f),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
                     modifier = Modifier.size(64.dp)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "Nessuna chiamata recente",
-                    color = Color.White.copy(alpha = 0.5f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 16.sp
                 )
             }
@@ -398,7 +395,7 @@ private fun RecentiTab(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(DarkBackground),
+                .background(MaterialTheme.colorScheme.background),
             contentPadding = PaddingValues(vertical = 8.dp)
         ) {
             items(callHistory, key = { it.id }) { callLog ->
@@ -466,7 +463,7 @@ private fun CallLogItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = number,
-                color = if (isMissed) CallRed else Color.White,
+                color = if (isMissed) CallRed else MaterialTheme.colorScheme.onBackground,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
@@ -475,13 +472,13 @@ private fun CallLogItem(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = if (isInbound) "In arrivo" else "In uscita",
-                    color = Color.White.copy(alpha = 0.5f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 13.sp
                 )
                 if (callLog.duration > 0) {
                     Text(
                         text = " • ${formatCallDuration(callLog.duration)}",
-                        color = Color.White.copy(alpha = 0.5f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 13.sp
                     )
                 }
@@ -490,7 +487,7 @@ private fun CallLogItem(
 
         Text(
             text = formatTimeAgo(callLog.startTime),
-            color = Color.White.copy(alpha = 0.4f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             fontSize = 12.sp
         )
 
@@ -521,7 +518,7 @@ private fun ContattiTab(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkBackground)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         TextField(
             value = searchQuery,
@@ -532,14 +529,14 @@ private fun ContattiTab(
             placeholder = {
                 Text(
                     text = "Cerca contatti...",
-                    color = Color.White.copy(alpha = 0.4f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                 )
             },
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.5f)
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
             trailingIcon = {
@@ -548,7 +545,7 @@ private fun ContattiTab(
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Cancella",
-                            tint = Color.White.copy(alpha = 0.5f)
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -556,13 +553,13 @@ private fun ContattiTab(
             singleLine = true,
             shape = RoundedCornerShape(12.dp),
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = DarkSurfaceVariant,
-                unfocusedContainerColor = DarkSurfaceVariant,
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                 cursorColor = PrimaryBlue,
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White
+                focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                unfocusedTextColor = MaterialTheme.colorScheme.onBackground
             )
         )
 
@@ -575,13 +572,13 @@ private fun ContattiTab(
                     Icon(
                         imageVector = Icons.Default.Person,
                         contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.3f),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
                         modifier = Modifier.size(64.dp)
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = if (searchQuery.isNotEmpty()) "Nessun contatto trovato" else "Nessun contatto",
-                        color = Color.White.copy(alpha = 0.5f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 16.sp
                     )
                 }
@@ -601,7 +598,7 @@ private fun ContattiTab(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(DarkBackground)
+                                .background(MaterialTheme.colorScheme.background)
                                 .padding(horizontal = 16.dp, vertical = 6.dp)
                         ) {
                             Text(
@@ -663,7 +660,7 @@ private fun ContactItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = contact.name,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
@@ -673,7 +670,7 @@ private fun ContactItem(
                 if (!contact.company.isNullOrBlank()) {
                     Text(
                         text = contact.company,
-                        color = Color.White.copy(alpha = 0.5f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 13.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -683,7 +680,7 @@ private fun ContactItem(
             if (!contact.phone.isNullOrBlank()) {
                 Text(
                     text = contact.phone,
-                    color = Color.White.copy(alpha = 0.4f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     fontSize = 13.sp,
                     maxLines = 1
                 )

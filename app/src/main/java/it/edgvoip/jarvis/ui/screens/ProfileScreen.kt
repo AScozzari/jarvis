@@ -22,6 +22,7 @@ import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -43,9 +44,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import it.edgvoip.jarvis.sip.RegistrationState
 import it.edgvoip.jarvis.ui.theme.CallGreen
 import it.edgvoip.jarvis.ui.theme.CallRed
-import it.edgvoip.jarvis.ui.theme.DarkBackground
-import it.edgvoip.jarvis.ui.theme.DarkSurface
-import it.edgvoip.jarvis.ui.theme.DarkSurfaceVariant
 import it.edgvoip.jarvis.ui.theme.PrimaryBlue
 import it.edgvoip.jarvis.ui.theme.WarningOrange
 
@@ -74,19 +72,19 @@ fun ProfileScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkBackground)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         TopAppBar(
             title = {
                 Text(
                     text = "Profilo",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp
                 )
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = DarkSurface
+                containerColor = MaterialTheme.colorScheme.surface
             )
         )
 
@@ -112,7 +110,7 @@ fun ProfileScreen(
             ) {
                 Text(
                     text = initials,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 36.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -122,7 +120,7 @@ fun ProfileScreen(
 
             Text(
                 text = fullName,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
@@ -132,7 +130,7 @@ fun ProfileScreen(
 
             Text(
                 text = email,
-                color = Color.White.copy(alpha = 0.6f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 15.sp,
                 textAlign = TextAlign.Center
             )
@@ -162,12 +160,12 @@ fun ProfileScreen(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
-                        .background(DarkSurfaceVariant)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = tenant,
-                        color = Color.White.copy(alpha = 0.7f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -229,7 +227,7 @@ private fun SipStatusCard(sipState: RegistrationState) {
             statusDescription = "Impossibile registrarsi al server SIP"
         }
         RegistrationState.UNREGISTERED, RegistrationState.UNREGISTERING -> {
-            statusColor = Color.White.copy(alpha = 0.4f)
+            statusColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
             statusIcon = Icons.Default.Error
             statusText = "Non registrato"
             statusDescription = "Il telefono SIP non è attivo"
@@ -241,7 +239,7 @@ private fun SipStatusCard(sipState: RegistrationState) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(DarkSurfaceVariant)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -265,7 +263,7 @@ private fun SipStatusCard(sipState: RegistrationState) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = "Stato SIP",
-                color = Color.White.copy(alpha = 0.5f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -277,7 +275,7 @@ private fun SipStatusCard(sipState: RegistrationState) {
             )
             Text(
                 text = statusDescription,
-                color = Color.White.copy(alpha = 0.5f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 13.sp
             )
         }
@@ -295,7 +293,7 @@ private fun QuickActionCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(DarkSurfaceVariant)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
             .clickable(onClick = onClick)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -320,13 +318,13 @@ private fun QuickActionCard(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
                 text = subtitle,
-                color = Color.White.copy(alpha = 0.5f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 13.sp
             )
         }

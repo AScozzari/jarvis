@@ -184,7 +184,6 @@ private fun MainTabbedView(
     snackbarHostState: SnackbarHostState
 ) {
     val selectedTab by viewModel.selectedTab.collectAsState()
-    val selectedAgent by viewModel.selectedAgent.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
     Scaffold(
@@ -388,7 +387,7 @@ private fun ElevenLabsVoiceView(viewModel: AiAgentViewModel, agent: ChatbotAgent
     val manager = viewModel.elevenLabsManager
     val infiniteTransition = rememberInfiniteTransition(label = "voice_orb")
 
-    val elevenLabsAgentId = agent.elevenLabsAgentId
+    val elevenLabsAgentId: String? = agent.elevenLabsAgentId
     val agentStatus by manager.status.collectAsState()
     val isConnected by manager.isConnected.collectAsState()
     val isSpeaking by manager.isSpeaking.collectAsState()
@@ -400,6 +399,24 @@ private fun ElevenLabsVoiceView(viewModel: AiAgentViewModel, agent: ChatbotAgent
     val errorMessage by manager.errorMessage.collectAsState()
 
     var sessionActive by remember { mutableStateOf(false) }
+    var audioPermissionGranted by remember {
+        mutableStateOf(
+            android.content.pm.PackageManager.PERMISSION_GRANTED ==
+                androidx.core.content.ContextCompat.checkSelfPermission(
+                    context, android.Manifest.permission.RECORD_AUDIO
+                )
+        )
+    }
+
+    val audioPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        audioPermissionGranted = granted
+        if (granted && elevenLabsAgentId != null) {
+            sessionActive = true
+            manager.startConversation(context, elevenLabsAgentId)
+        }
+    }
 
     val outerPulse by infiniteTransition.animateFloat(
         initialValue = 0.88f,
@@ -773,8 +790,12 @@ private fun ElevenLabsVoiceView(viewModel: AiAgentViewModel, agent: ChatbotAgent
                                     manager.disconnect()
                                     sessionActive = false
                                 } else if (!sessionActive && elevenLabsAgentId != null) {
-                                    sessionActive = true
-                                    manager.startConversation(context, elevenLabsAgentId)
+                                    if (audioPermissionGranted) {
+                                        sessionActive = true
+                                        manager.startConversation(context, elevenLabsAgentId)
+                                    } else {
+                                        audioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                                    }
                                 }
                             },
                             shape = CircleShape,
@@ -967,14 +988,14 @@ private fun SwipeableConversationCard(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFFD32F2F)),
+                    .background(Color(0xFFBBDEFB)),
                 contentAlignment = Alignment.CenterEnd
             ) {
                 Icon(
                     Icons.Default.Delete,
                     contentDescription = "Elimina",
                     modifier = Modifier.padding(end = 24.dp),
-                    tint = Color.White
+                    tint = Color(0xFF1565C0)
                 )
             }
         },
@@ -996,7 +1017,7 @@ private fun SwipeableConversationCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(start = 16.dp, top = 16.dp, bottom = 16.dp, end = 8.dp),
                 verticalAlignment = Alignment.Top
             ) {
                 Surface(
@@ -1064,6 +1085,18 @@ private fun SwipeableConversationCard(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
+                }
+
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "Elimina conversazione",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.size(18.dp)
+                    )
                 }
 
                 DropdownMenu(
@@ -1420,89 +1453,90 @@ private fun ChatInputBar(
         }
     }
 
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 3.dp
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .navigationBarsPadding(),
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp)
-                .navigationBarsPadding(),
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            if (showSttButton) {
-                IconButton(
-                    onClick = {
-                        isRecording = true
-                        val intent = android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                            putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                            putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, "it-IT")
-                            putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, "Parla ora...")
-                        }
-                        try {
-                            speechLauncher.launch(intent)
-                        } catch (_: Exception) {
-                            isRecording = false
-                        }
-                    },
-                    modifier = Modifier.size(44.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Mic,
-                        contentDescription = "Dettatura vocale",
-                        tint = if (isRecording) Color(0xFFD32F2F) else MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-
-            TextField(
-                value = message,
-                onValueChange = onMessageChange,
-                modifier = Modifier.weight(1f),
-                placeholder = { Text("Scrivi un messaggio...") },
-                maxLines = 4,
-                shape = RoundedCornerShape(24.dp),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
-                )
-            )
-
+        if (showSttButton) {
             IconButton(
-                onClick = onSend,
-                enabled = message.isNotBlank() && !isSending,
-                modifier = Modifier
-                    .size(44.dp)
-                    .background(
-                        if (message.isNotBlank() && !isSending)
-                            MaterialTheme.colorScheme.primary
-                        else
-                            MaterialTheme.colorScheme.surfaceVariant,
-                        CircleShape
-                    )
+                onClick = {
+                    isRecording = true
+                    val intent = android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                        putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                        putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, "it-IT")
+                        putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, "Parla ora...")
+                    }
+                    try {
+                        speechLauncher.launch(intent)
+                    } catch (_: Exception) {
+                        isRecording = false
+                    }
+                },
+                modifier = Modifier.size(40.dp)
             ) {
-                if (isSending) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                } else {
-                    Icon(
-                        Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "Invia",
-                        tint = if (message.isNotBlank())
-                            MaterialTheme.colorScheme.onPrimary
-                        else
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
+                Icon(
+                    Icons.Default.Mic,
+                    contentDescription = "Dettatura vocale",
+                    tint = if (isRecording) Color(0xFFD32F2F) else MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+        }
+
+        TextField(
+            value = message,
+            onValueChange = onMessageChange,
+            modifier = Modifier.weight(1f),
+            placeholder = {
+                Text(
+                    "Scrivi un messaggio...",
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                )
+            },
+            maxLines = 4,
+            shape = RoundedCornerShape(24.dp),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                disabledIndicatorColor = Color.Transparent
+            )
+        )
+
+        IconButton(
+            onClick = onSend,
+            enabled = message.isNotBlank() && !isSending,
+            modifier = Modifier
+                .size(40.dp)
+                .background(
+                    if (message.isNotBlank() && !isSending)
+                        MaterialTheme.colorScheme.primary
+                    else
+                        Color.Transparent,
+                    CircleShape
+                )
+        ) {
+            if (isSending) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            } else {
+                Icon(
+                    Icons.AutoMirrored.Filled.Send,
+                    contentDescription = "Invia",
+                    tint = if (message.isNotBlank())
+                        MaterialTheme.colorScheme.onPrimary
+                    else
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }

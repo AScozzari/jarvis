@@ -43,7 +43,8 @@ import androidx.fragment.app.FragmentActivity
 import it.edgvoip.jarvis.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import it.edgvoip.jarvis.ui.theme.*
+import it.edgvoip.jarvis.ui.theme.PrimaryBlue
+import it.edgvoip.jarvis.ui.theme.CallRed
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -81,9 +82,9 @@ fun LoginScreen(
     if (uiState.showForceLogin) {
         AlertDialog(
             onDismissRequest = { viewModel.dismissForceLogin() },
-            containerColor = DarkSurface,
-            titleContentColor = DarkOnSurface,
-            textContentColor = DarkOnSurfaceVariant,
+            containerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             title = {
                 Text(
                     text = "Sessione attiva",
@@ -104,7 +105,7 @@ fun LoginScreen(
             dismissButton = {
                 TextButton(
                     onClick = { viewModel.dismissForceLogin() },
-                    colors = ButtonDefaults.textButtonColors(contentColor = DarkOnSurfaceVariant)
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
                 ) {
                     Text("Annulla")
                 }
@@ -115,9 +116,9 @@ fun LoginScreen(
     if (uiState.showBiometricSetup && activity != null && BiometricHelper.canAuthenticate(context)) {
         AlertDialog(
             onDismissRequest = { viewModel.skipBiometric() },
-            containerColor = DarkSurface,
-            titleContentColor = DarkOnSurface,
-            textContentColor = DarkOnSurfaceVariant,
+            containerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             title = {
                 Text(
                     text = "Attiva accesso con impronta",
@@ -152,7 +153,7 @@ fun LoginScreen(
             dismissButton = {
                 TextButton(
                     onClick = { viewModel.skipBiometric() },
-                    colors = ButtonDefaults.textButtonColors(contentColor = DarkOnSurfaceVariant)
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
                 ) {
                     Text("Salta")
                 }
@@ -170,7 +171,7 @@ fun LoginScreen(
                 Snackbar(
                     snackbarData = data,
                     containerColor = CallRed,
-                    contentColor = Color.White,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                     shape = RoundedCornerShape(12.dp)
                 )
             }
@@ -227,14 +228,14 @@ fun LoginScreen(
                     text = "JARVIS",
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     letterSpacing = 6.sp
                 )
 
                 Text(
                     text = "EDG VoIP Platform",
                     fontSize = 14.sp,
-                    color = DarkOnSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     letterSpacing = 2.sp
                 )
 
@@ -266,7 +267,7 @@ fun LoginScreen(
                     Text(
                         text = "oppure",
                         fontSize = 14.sp,
-                        color = DarkOnSurfaceVariant,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center
                     )
@@ -277,7 +278,7 @@ fun LoginScreen(
                     text = "Accedi al tuo account",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = DarkOnSurface,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Start
                 )
@@ -291,7 +292,7 @@ fun LoginScreen(
                     prefix = {
                         Text(
                             text = "edgvoip.it/",
-                            color = DarkOnSurfaceVariant,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 14.sp
                         )
                     },
@@ -359,7 +360,7 @@ fun LoginScreen(
                             Icon(
                                 imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                                 contentDescription = if (passwordVisible) "Nascondi password" else "Mostra password",
-                                tint = DarkOnSurfaceVariant
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     },
@@ -408,7 +409,7 @@ fun LoginScreen(
                     ) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(24.dp),
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onPrimary,
                             strokeWidth = 2.dp
                         )
                     }
@@ -422,7 +423,7 @@ fun LoginScreen(
                             text = "Accedi",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color.White
+                            color = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                 }
@@ -432,7 +433,7 @@ fun LoginScreen(
                 Text(
                     text = "© EDG VoIP",
                     fontSize = 12.sp,
-                    color = DarkOnSurfaceVariant.copy(alpha = 0.5f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                 )
 
                 Spacer(modifier = Modifier.height(48.dp))
@@ -444,18 +445,18 @@ fun LoginScreen(
 @Composable
 private fun loginTextFieldColors(): TextFieldColors {
     return OutlinedTextFieldDefaults.colors(
-        focusedTextColor = DarkOnSurface,
-        unfocusedTextColor = DarkOnSurface,
+        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
         cursorColor = PrimaryBlue,
         focusedBorderColor = PrimaryBlue,
-        unfocusedBorderColor = DarkOutline,
+        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
         focusedLabelColor = PrimaryBlue,
-        unfocusedLabelColor = DarkOnSurfaceVariant,
+        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
         focusedLeadingIconColor = PrimaryBlue,
-        unfocusedLeadingIconColor = DarkOnSurfaceVariant,
-        focusedContainerColor = DarkSurface.copy(alpha = 0.6f),
-        unfocusedContainerColor = DarkSurface.copy(alpha = 0.4f),
-        focusedPrefixColor = DarkOnSurfaceVariant,
-        unfocusedPrefixColor = DarkOnSurfaceVariant
+        unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+        unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f),
+        focusedPrefixColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        unfocusedPrefixColor = MaterialTheme.colorScheme.onSurfaceVariant
     )
 }

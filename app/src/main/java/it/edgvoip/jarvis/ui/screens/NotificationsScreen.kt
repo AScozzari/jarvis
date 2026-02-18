@@ -60,9 +60,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import it.edgvoip.jarvis.data.db.NotificationEntity
 import it.edgvoip.jarvis.ui.theme.CallGreen
 import it.edgvoip.jarvis.ui.theme.CallRed
-import it.edgvoip.jarvis.ui.theme.DarkBackground
-import it.edgvoip.jarvis.ui.theme.DarkSurface
-import it.edgvoip.jarvis.ui.theme.DarkSurfaceVariant
 import it.edgvoip.jarvis.ui.theme.PrimaryBlue
 import it.edgvoip.jarvis.ui.theme.SecondaryTeal
 import it.edgvoip.jarvis.ui.theme.TertiaryPurple
@@ -87,14 +84,14 @@ fun NotificationsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkBackground)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         TopAppBar(
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = "Notifiche",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp
                     )
@@ -109,7 +106,7 @@ fun NotificationsScreen(
                         ) {
                             Text(
                                 text = if (unreadCount > 99) "99+" else unreadCount.toString(),
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -129,7 +126,7 @@ fun NotificationsScreen(
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = DarkSurface
+                containerColor = MaterialTheme.colorScheme.surface
             )
         )
 
@@ -142,20 +139,20 @@ fun NotificationsScreen(
                     Icon(
                         imageVector = Icons.Default.NotificationsNone,
                         contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.2f),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
                         modifier = Modifier.size(80.dp)
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "Nessuna notifica",
-                        color = Color.White.copy(alpha = 0.4f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Medium
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Le notifiche appariranno qui",
-                        color = Color.White.copy(alpha = 0.3f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
                         fontSize = 14.sp
                     )
                 }
@@ -174,7 +171,7 @@ fun NotificationsScreen(
                         item(key = "header_$dateGroup") {
                             Text(
                                 text = dateGroup,
-                                color = Color.White.copy(alpha = 0.5f),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 modifier = Modifier.padding(
@@ -293,7 +290,7 @@ private fun NotificationItem(
     }
 
     val bgColor by animateColorAsState(
-        targetValue = if (!notification.isRead) DarkSurfaceVariant.copy(alpha = 0.7f) else DarkBackground,
+        targetValue = if (!notification.isRead) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f) else MaterialTheme.colorScheme.background,
         label = "notifBg"
     )
 
@@ -330,7 +327,7 @@ private fun NotificationItem(
             ) {
                 Text(
                     text = notification.title,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 15.sp,
                     fontWeight = if (!notification.isRead) FontWeight.Bold else FontWeight.Medium,
                     maxLines = 1,
@@ -340,7 +337,7 @@ private fun NotificationItem(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = formatRelativeTime(notification.createdAt),
-                    color = Color.White.copy(alpha = 0.4f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
                     fontSize = 12.sp
                 )
             }
@@ -349,7 +346,7 @@ private fun NotificationItem(
 
             Text(
                 text = notification.body,
-                color = Color.White.copy(alpha = if (!notification.isRead) 0.8f else 0.5f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (!notification.isRead) 0.8f else 0.5f),
                 fontSize = 14.sp,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,

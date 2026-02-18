@@ -236,13 +236,7 @@ class ElevenLabsWebRtcManager {
     fun disconnect() {
         Log.i(TAG, "Disconnecting session")
         timeoutJob?.cancel()
-        scope.launch {
-            try {
-                session?.endSession()
-            } catch (e: Exception) {
-                Log.w(TAG, "Error ending session: ${e.message}")
-            }
-        }
+        val currentSession = session
         session = null
         _status.value = AgentStatus.DISCONNECTED
         _isConnected.value = false
@@ -255,6 +249,17 @@ class ElevenLabsWebRtcManager {
         _isMuted.value = false
         _errorMessage.value = null
         _mode.value = AgentMode.LISTENING
+        if (currentSession != null) {
+            scope.launch {
+                try {
+                    Log.i(TAG, "Ending ElevenLabs session...")
+                    currentSession.endSession()
+                    Log.i(TAG, "ElevenLabs session ended successfully")
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error ending session: ${e.message}")
+                }
+            }
+        }
     }
 
     fun clearError() {

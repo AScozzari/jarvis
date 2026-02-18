@@ -401,6 +401,13 @@ private fun ElevenLabsVoiceView(viewModel: AiAgentViewModel, agent: ChatbotAgent
     val errorMessage by manager.errorMessage.collectAsState()
 
     var sessionActive by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isConnected, agentStatus) {
+        if (!isConnected && agentStatus == it.edgvoip.jarvis.ai.AgentStatus.DISCONNECTED) {
+            sessionActive = false
+        }
+    }
+
     var audioPermissionGranted by remember {
         mutableStateOf(
             android.content.pm.PackageManager.PERMISSION_GRANTED ==
@@ -800,10 +807,10 @@ private fun ElevenLabsVoiceView(viewModel: AiAgentViewModel, agent: ChatbotAgent
                     ) {
                         Surface(
                             onClick = {
-                                if (sessionActive && isConnected) {
+                                if (sessionActive) {
                                     manager.disconnect()
                                     sessionActive = false
-                                } else if (!sessionActive && !elevenLabsAgentId.isNullOrBlank()) {
+                                } else if (!elevenLabsAgentId.isNullOrBlank()) {
                                     if (audioPermissionGranted) {
                                         sessionActive = true
                                         manager.startConversation(context, elevenLabsAgentId)
@@ -813,12 +820,12 @@ private fun ElevenLabsVoiceView(viewModel: AiAgentViewModel, agent: ChatbotAgent
                                 }
                             },
                             shape = CircleShape,
-                            color = if (sessionActive && isConnected) EndCallRed else ElevenLabsPrimary,
+                            color = if (sessionActive) EndCallRed else ElevenLabsPrimary,
                             modifier = Modifier.size(68.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                                 Icon(
-                                    if (sessionActive && isConnected) Icons.Default.CallEnd else Icons.Default.Phone,
+                                    if (sessionActive) Icons.Default.CallEnd else Icons.Default.Phone,
                                     contentDescription = if (sessionActive) "Termina" else "Avvia",
                                     tint = voiceIconTint,
                                     modifier = Modifier.size(28.dp)
@@ -826,7 +833,7 @@ private fun ElevenLabsVoiceView(viewModel: AiAgentViewModel, agent: ChatbotAgent
                             }
                         }
                         Text(
-                            text = if (sessionActive && isConnected) "Termina" else "Avvia",
+                            text = if (sessionActive) "Termina" else "Avvia",
                             style = MaterialTheme.typography.labelSmall,
                             color = voiceSubtleColor
                         )

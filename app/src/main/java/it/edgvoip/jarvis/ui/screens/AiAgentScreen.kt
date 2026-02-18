@@ -15,7 +15,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -458,10 +460,21 @@ private fun ElevenLabsVoiceView(viewModel: AiAgentViewModel, agent: ChatbotAgent
         label = "wave2"
     )
 
+    val isLightTheme = !isSystemInDarkTheme()
+    val voiceBgColor = if (isLightTheme) MaterialTheme.colorScheme.surfaceVariant else ElevenLabsBgDark
+    val voiceTextColor = if (isLightTheme) MaterialTheme.colorScheme.onSurface else Color.White
+    val voiceSubtleColor = if (isLightTheme) MaterialTheme.colorScheme.onSurfaceVariant else Color.White.copy(alpha = 0.6f)
+    val voiceCardColor = if (isLightTheme) MaterialTheme.colorScheme.surface else ElevenLabsCardBg
+    val voiceOrbIdle = if (isLightTheme) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f) else Color.White.copy(alpha = 0.06f)
+    val voiceOrbIdleInner = if (isLightTheme) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f) else Color.White.copy(alpha = 0.1f)
+    val voiceOrbIdleInner2 = if (isLightTheme) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.03f) else Color.White.copy(alpha = 0.03f)
+    val voiceMuteBtn = if (isLightTheme) MaterialTheme.colorScheme.surfaceVariant else Color.White.copy(alpha = 0.1f)
+    val voiceIconTint = if (isLightTheme) MaterialTheme.colorScheme.onSurface else Color.White
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(ElevenLabsBgDark)
+            .background(voiceBgColor)
     ) {
         Column(
             modifier = Modifier
@@ -475,7 +488,7 @@ private fun ElevenLabsVoiceView(viewModel: AiAgentViewModel, agent: ChatbotAgent
             Text(
                 text = agent.name,
                 style = MaterialTheme.typography.headlineSmall,
-                color = Color.White,
+                color = voiceTextColor,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
             )
@@ -500,7 +513,7 @@ private fun ElevenLabsVoiceView(viewModel: AiAgentViewModel, agent: ChatbotAgent
                 isListening && !agentMuted -> OrbGreen
                 agentMuted -> Color(0xFFFF9800)
                 isConnected -> OrbGreen
-                else -> Color.White.copy(alpha = 0.5f)
+                else -> voiceSubtleColor.copy(alpha = 0.5f)
             }
 
             Row(
@@ -546,7 +559,7 @@ private fun ElevenLabsVoiceView(viewModel: AiAgentViewModel, agent: ChatbotAgent
                     Text(
                         text = errorMessage ?: "Errore sconosciuto",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = Color.White.copy(alpha = 0.7f),
+                        color = voiceTextColor.copy(alpha = 0.7f),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = 32.dp)
                     )
@@ -561,7 +574,7 @@ private fun ElevenLabsVoiceView(viewModel: AiAgentViewModel, agent: ChatbotAgent
                     ) {
                         Text(
                             text = "Riprova",
-                            color = Color.White,
+                            color = voiceTextColor,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.padding(horizontal = 32.dp, vertical = 14.dp)
                         )
@@ -575,21 +588,21 @@ private fun ElevenLabsVoiceView(viewModel: AiAgentViewModel, agent: ChatbotAgent
                     Box(
                         modifier = Modifier
                             .size(120.dp)
-                            .background(Color.White.copy(alpha = 0.08f), CircleShape),
+                            .background(voiceOrbIdle, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Default.MicOff,
                             contentDescription = null,
                             modifier = Modifier.size(52.dp),
-                            tint = Color.White.copy(alpha = 0.4f)
+                            tint = voiceSubtleColor.copy(alpha = 0.4f)
                         )
                     }
 
                     Text(
                         text = "Questo agente non supporta la conversazione vocale.",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = Color.White.copy(alpha = 0.6f),
+                        color = voiceSubtleColor,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = 24.dp)
                     )
@@ -647,7 +660,7 @@ private fun ElevenLabsVoiceView(viewModel: AiAgentViewModel, agent: ChatbotAgent
                                             ElevenLabsPrimary.copy(alpha = 0.05f)
                                         )
                                         else -> listOf(
-                                            Color.White.copy(alpha = 0.06f),
+                                            voiceOrbIdle,
                                             Color.Transparent
                                         )
                                     }
@@ -672,8 +685,8 @@ private fun ElevenLabsVoiceView(viewModel: AiAgentViewModel, agent: ChatbotAgent
                                                 ElevenLabsPrimary.copy(alpha = 0.15f)
                                             )
                                             else -> listOf(
-                                                Color.White.copy(alpha = 0.1f),
-                                                Color.White.copy(alpha = 0.03f)
+                                                voiceOrbIdleInner,
+                                                voiceOrbIdleInner2
                                             )
                                         }
                                     ),
@@ -698,7 +711,7 @@ private fun ElevenLabsVoiceView(viewModel: AiAgentViewModel, agent: ChatbotAgent
                                         },
                                         contentDescription = null,
                                         modifier = Modifier.size(48.dp),
-                                        tint = if (isConnected) Color.White else Color.White.copy(alpha = 0.6f)
+                                        tint = if (isConnected) voiceIconTint else voiceSubtleColor
                                     )
                                 }
                             }
@@ -714,7 +727,7 @@ private fun ElevenLabsVoiceView(viewModel: AiAgentViewModel, agent: ChatbotAgent
                 if (displayMessage != null) {
                     Surface(
                         shape = RoundedCornerShape(16.dp),
-                        color = ElevenLabsCardBg,
+                        color = voiceCardColor,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 8.dp)
@@ -732,7 +745,7 @@ private fun ElevenLabsVoiceView(viewModel: AiAgentViewModel, agent: ChatbotAgent
                             Text(
                                 text = displayMessage,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Color.White.copy(alpha = 0.8f),
+                                color = voiceTextColor.copy(alpha = 0.8f),
                                 maxLines = 3,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -760,14 +773,14 @@ private fun ElevenLabsVoiceView(viewModel: AiAgentViewModel, agent: ChatbotAgent
                             Surface(
                                 onClick = { manager.toggleMute() },
                                 shape = CircleShape,
-                                color = if (agentMuted) Color(0xFFFF9800) else Color.White.copy(alpha = 0.1f),
+                                color = if (agentMuted) Color(0xFFFF9800) else voiceMuteBtn,
                                 modifier = Modifier.size(52.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                                     Icon(
                                         if (agentMuted) Icons.Default.MicOff else Icons.Default.Mic,
                                         contentDescription = if (agentMuted) "Attiva mic" else "Muta mic",
-                                        tint = Color.White,
+                                        tint = voiceIconTint,
                                         modifier = Modifier.size(22.dp)
                                     )
                                 }
@@ -775,7 +788,7 @@ private fun ElevenLabsVoiceView(viewModel: AiAgentViewModel, agent: ChatbotAgent
                             Text(
                                 text = if (agentMuted) "Muto" else "Mic",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Color.White.copy(alpha = 0.6f)
+                                color = voiceSubtleColor
                             )
                         }
                     }
@@ -806,7 +819,7 @@ private fun ElevenLabsVoiceView(viewModel: AiAgentViewModel, agent: ChatbotAgent
                                 Icon(
                                     if (sessionActive && isConnected) Icons.Default.CallEnd else Icons.Default.Phone,
                                     contentDescription = if (sessionActive) "Termina" else "Avvia",
-                                    tint = Color.White,
+                                    tint = voiceIconTint,
                                     modifier = Modifier.size(28.dp)
                                 )
                             }
@@ -814,7 +827,7 @@ private fun ElevenLabsVoiceView(viewModel: AiAgentViewModel, agent: ChatbotAgent
                         Text(
                             text = if (sessionActive && isConnected) "Termina" else "Avvia",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.6f)
+                            color = voiceSubtleColor
                         )
                     }
                 }
@@ -1490,7 +1503,13 @@ private fun ChatInputBar(
         TextField(
             value = message,
             onValueChange = onMessageChange,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                    shape = RoundedCornerShape(24.dp)
+                ),
             placeholder = {
                 Text(
                     "Scrivi un messaggio...",
@@ -1500,7 +1519,7 @@ private fun ChatInputBar(
             maxLines = 4,
             shape = RoundedCornerShape(24.dp),
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color.Transparent,
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                 unfocusedContainerColor = Color.Transparent,
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,

@@ -516,19 +516,44 @@ class WebRtcPhoneManager @Inject constructor(
 
     fun hangupCall() {
         val currentState = _callState.value
+        Log.i(TAG, "hangupCall() called - state=$currentState, callId=$currentCallSipId, ws=${webSocket != null}")
+
         if (currentState == CallState.IDLE || currentState == CallState.DISCONNECTED) {
-            Log.w(TAG, "No active call to hangup")
+            if (currentCallSipId.isNotEmpty()) {
+                Log.w(TAG, "State is $currentState but callId exists, forcing BYE+cleanup")
+                sendSipBye()
+                endCallCleanup("User hangup (forced)")
+            } else {
+                Log.w(TAG, "No active call to hangup")
+            }
             return
         }
 
-        Log.i(TAG, "Hanging up call")
         stopDurationTimer()
 
         when (currentState) {
-            CallState.CALLING, CallState.RINGING -> sendSipCancel()
+            CallState.CALLING, CallState.RINGING -> {
+                Log.i(TAG, "Sending CANCEL for unanswered call")
+                sendSipCancel()
+                scope.launch {
+                    delay(500)
+                    val stateAfterCancel = _callState.value
+                    if (stateAfterCancel == CallState.CONNECTED) {
+                        Log.i(TAG, "Call connected after CANCEL, sending BYE")
+                        sendSipBye()
+                        endCallCleanup("User hangup (BYE after late answer)")
+                    }
+                }
+            }
             CallState.INCOMING -> sendSip486Busy()
-            CallState.CONNECTED, CallState.HOLDING -> sendSipBye()
-            else -> {}
+            CallState.CONNECTED, CallState.HOLDING -> {
+                Log.i(TAG, "Sending BYE for active call")
+                sendSipBye()
+            }
+            else -> {
+                Log.w(TAG, "Unexpected state $currentState, sending BYE as fallback")
+                sendSipBye()
+            }
         }
 
         endCallCleanup("User hangup")
@@ -808,14 +833,15 @@ class WebRtcPhoneManager @Inject constructor(
 
     // ── SIP Message Sending ──
 
-    private fun sendRaw(message: String) {
+    private fun sendRaw(message: String): Boolean {
         val ws = webSocket
         if (ws == null) {
-            Log.w(TAG, "Cannot send SIP: WebSocket not connected")
-            return
+            val firstLine = message.lineSequence().firstOrNull() ?: "unknown"
+            Log.e(TAG, "SEND FAILED - WebSocket null! Message: $firstLine")
+            return false
         }
         Log.d(TAG, ">>> SIP OUT:\n${message.take(500)}")
-        ws.send(message)
+        return ws.send(message)
     }
 
     private fun sendSipRegister(config: SipConfig, authHeader: String? = null) {

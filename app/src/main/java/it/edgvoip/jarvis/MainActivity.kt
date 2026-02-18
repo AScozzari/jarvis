@@ -48,6 +48,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.foundation.isSystemInDarkTheme
+import android.widget.Toast
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.datastore.preferences.core.stringPreferencesKey
 import dagger.hilt.android.AndroidEntryPoint
@@ -90,6 +92,16 @@ fun JarvisApp(
     val navController = rememberNavController()
     val isAuthenticated by viewModel.isAuthenticated.collectAsStateWithLifecycle(initialValue = false)
     val notificationCount by viewModel.unreadNotificationCount.collectAsStateWithLifecycle(initialValue = 0)
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    LaunchedEffect(Unit) {
+        viewModel.sessionExpiredMessage.collect { message ->
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            navController.navigate(Screen.Login.route) {
+                popUpTo(navController.graph.startDestinationId) { inclusive = true }
+            }
+        }
+    }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route

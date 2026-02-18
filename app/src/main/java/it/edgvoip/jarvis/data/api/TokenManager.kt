@@ -8,11 +8,22 @@ import androidx.security.crypto.MasterKey
 import com.google.gson.Gson
 import it.edgvoip.jarvis.data.model.SipConfig
 import it.edgvoip.jarvis.data.model.User
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 
 class TokenManager(context: Context) {
 
     private val prefs: SharedPreferences = createPrefs(context)
     private val gson = Gson()
+
+    private val _sessionExpired = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val sessionExpired: SharedFlow<String> = _sessionExpired.asSharedFlow()
+
+    fun emitSessionExpired(reason: String = "Sessione scaduta") {
+        Log.w("TokenManager", "Session expired: $reason")
+        _sessionExpired.tryEmit(reason)
+    }
 
     private fun createPrefs(context: Context): SharedPreferences {
         return try {

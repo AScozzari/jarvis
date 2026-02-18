@@ -145,7 +145,8 @@ object ApiClient {
                             }
                         }
 
-                        tokenManager.clearAll()
+                        tokenManager.clearSession()
+                        tokenManager.emitSessionExpired("Sessione scaduta. Effettua nuovamente il login")
                         return null
                     }
                 }

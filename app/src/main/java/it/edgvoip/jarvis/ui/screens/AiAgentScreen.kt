@@ -793,7 +793,6 @@ private fun ChatInputBar(
     showVoiceButton: Boolean = false,
     showSttButton: Boolean = false
 ) {
-    val context = LocalContext.current
     var isRecording by remember { mutableStateOf(false) }
 
     val speechLauncher = rememberLauncherForActivityResult(
@@ -1150,9 +1149,7 @@ private fun VoiceModeOverlay(viewModel: AiAgentViewModel) {
                     Surface(
                         onClick = {
                             callStarted = true
-                            if (elevenLabsAgentId != null) {
-                                manager.startConversation(context, elevenLabsAgentId)
-                            }
+                            manager.startConversation(context, elevenLabsAgentId!!)
                         },
                         shape = RoundedCornerShape(28.dp),
                         color = accentPurple,
